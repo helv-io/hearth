@@ -22,6 +22,10 @@ ApplicationWindow {
     property string providerDocs: ""
     property bool confirmOpen: false
 
+    // Closing Settings ends a sign-in that is still waiting, so nothing is left running out of sight.
+    onSettingsOpenChanged: if (!settingsOpen) controller.cancelGrokSignIn()
+    onProviderIsGrokChanged: if (!providerIsGrok) controller.cancelGrokSignIn()
+
     function openSettings() {
         fillingSettings = true
         endpoint.text = controller.baseUrl
@@ -434,18 +438,15 @@ ApplicationWindow {
                                     font.bold: true
                                 }
                                 MouseArea { anchors.fill: parent; onClicked: win.groupMode = index === 1 }
+                                HoverHandler { id: modeHover }
+                                ToolTip.visible: modeHover.hovered
+                                ToolTip.delay: 600
+                                ToolTip.text: index === 1
+                                    ? "Drop an app on another app to make a folder."
+                                    : "Drag an icon to move it. Hold it at the side of the canvas to turn pages."
                             }
                         }
                     }
-                }
-                Text {
-                    Layout.fillWidth: true
-                    wrapMode: Text.WordWrap
-                    text: groupMode
-                        ? "Drop an app on another app to make a folder. Move mode places icons beside each other and can leave empty cells."
-                        : "Drag an icon to move it. Drop it on an empty cell to leave a gap, or on the side of an icon to place it beside that icon. Drop on the middle of a folder to put it inside. Drag a name, or hold an icon at the side of the canvas, to slide the pages. Click a folder to open it underneath. Pull the folder handle down to close it."
-                    color: "#8E8E93"
-                    font.pixelSize: 11
                 }
 
                 Text { text: "Versions"; color: "#8E8E93"; font.pixelSize: 11; font.bold: true }
@@ -946,9 +947,17 @@ ApplicationWindow {
                     spacing: 8
                     visible: providerIsGrok
                     Button {
-                        text: controller.grokSignedIn ? "Sign out of Grok" : "Sign in with Grok"
-                        enabled: !controller.busy
-                        onClicked: controller.grokSignedIn ? controller.signOutGrok() : controller.startGrokSignIn()
+                        objectName: "grokButton"
+                        text: controller.grokWaiting ? "Cancel sign-in" : (controller.grokSignedIn ? "Sign out of Grok" : "Sign in with Grok")
+                        enabled: controller.grokWaiting || !controller.busy
+                        onClicked: {
+                            if (controller.grokWaiting)
+                                controller.cancelGrokSignIn()
+                            else if (controller.grokSignedIn)
+                                controller.signOutGrok()
+                            else
+                                controller.startGrokSignIn()
+                        }
                         background: Rectangle { radius: 8; color: parent.enabled ? "#1C1C22" : "#141418"; border.color: "#3A3A40"; border.width: 1 }
                         contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; leftPadding: 12; rightPadding: 12 }
                     }

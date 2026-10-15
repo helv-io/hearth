@@ -12,6 +12,9 @@ from PySide6.QtGui import QDesktopServices, QGuiApplication
 from hearth import __version__, ai, device, drivers, grok_sso, icons, layout, presets, screens, settings, updates
 
 
+SHUTDOWN_WAIT_MS = 4000
+
+
 class _Job(QThread):
     failed = Signal(str)
     progressed = Signal(str)
@@ -62,6 +65,9 @@ class _Job(QThread):
                 self.proposed.emit(proposal)
             elif self.kind == "grok":
                 flow = grok_sso.start_device()
+                if self.cancel.is_set():
+                    self.grok_finished.emit("cancelled")
+                    return
                 self.grok_code.emit({
                     "user_code": flow.get("user_code") or "",
                     "verification_uri": flow.get("verification_uri") or "",
@@ -138,6 +144,8 @@ class Controller(QObject):
         self._scan_gen = 0
         self._cancel = Event()
         self._job: _Job | None = None
+        self._retired: list[_Job] = []
+        self._grok_waiting = False
         self._update_state = updates.load_state()
         self._update_version = ""
         self._update_job: _UpdateJob | None = None
@@ -321,6 +329,11 @@ class Controller(QObject):
         return self._grok_code
 
     grokCode = Property(str, _grok_code_text, notify=grokChanged)
+
+    def _grok_waiting_now(self):
+        return self._grok_waiting
+
+    grokWaiting = Property(bool, _grok_waiting_now, notify=grokChanged)
 
     def _key_hint(self):
         if self._provider() == "grok" and grok_sso.signed_in():
@@ -689,6 +702,24 @@ class Controller(QObject):
         self._start(_Job("grok", self._cancel))
 
     @Slot()
+    def cancelGrokSignIn(self):
+        """Stop a sign-in that is waiting. The app is usable again before the worker has even stopped."""
+        job = self._job
+        if not self._grok_waiting or job is None or job.kind != "grok":
+            return
+        job.cancel.set()
+        if job.isRunning():
+            self._retired.append(job)
+        self._job = None
+        self._grok_waiting = False
+        self._grok_code = ""
+        self._grok_link = ""
+        self.grokChanged.emit()
+        self.settingsChanged.emit()
+        self._set_busy(False)
+        self._set_status("Grok sign-in cancelled.", False)
+
+    @Slot()
     def signOutGrok(self):
         grok_sso.sign_out()
         self._grok_code = ""
@@ -741,8 +772,13 @@ class Controller(QObject):
     @Slot()
     def shutdown(self):
         self._cancel.set()
-        if self._job is not None and self._job.isRunning():
-            self._job.wait(4000)
+        stragglers = [job for job in [self._job, *self._retired] if job is not None and job.isRunning()]
+        for job in stragglers:
+            job.cancel.set()
+            if not job.wait(SHUTDOWN_WAIT_MS):
+                # A request that will not return must not keep the window from closing.
+                job.terminate()
+                job.wait(SHUTDOWN_WAIT_MS)
         if self._update_job is not None and self._update_job.isRunning():
             self._update_job.wait(updates.TIMEOUT_SECONDS * 1000 + 1000)
 
@@ -796,20 +832,25 @@ class Controller(QObject):
         if self._job is not None and self._job.isRunning():
             self._set_status("Wait for the current step to finish.", True)
             return
-        self._cancel.clear()
+        self._cancel = Event()
+        job.cancel = self._cancel
         self._job = job
-        job.failed.connect(self._on_failed)
-        job.progressed.connect(lambda text: self._set_status(text, False))
-        job.pulled.connect(self._on_pulled)
-        job.icon_ready.connect(self._on_icon)
-        job.missed.connect(self._on_missed)
-        job.pushed.connect(self._on_pushed)
-        job.models_ready.connect(self._on_models)
-        job.proposed.connect(self._on_proposed)
-        job.grok_code.connect(self._on_grok_code)
-        job.grok_finished.connect(self._on_grok_finished)
-        job.driver_done.connect(self._on_driver)
-        job.finished.connect(lambda: self._set_busy(False))
+        mine = self._current(job)
+        job.failed.connect(mine(self._on_failed))
+        job.progressed.connect(mine(lambda text: self._set_status(text, False)))
+        job.pulled.connect(mine(self._on_pulled))
+        job.icon_ready.connect(mine(self._on_icon))
+        job.missed.connect(mine(self._on_missed))
+        job.pushed.connect(mine(self._on_pushed))
+        job.models_ready.connect(mine(self._on_models))
+        job.proposed.connect(mine(self._on_proposed))
+        job.grok_code.connect(mine(self._on_grok_code))
+        job.grok_finished.connect(mine(self._on_grok_finished))
+        job.driver_done.connect(mine(self._on_driver))
+        job.finished.connect(lambda: self._on_job_finished(job))
+        self._grok_waiting = job.kind == "grok"
+        if self._grok_waiting:
+            self.grokChanged.emit()
         self._set_busy(True)
         if job.kind == "pull":
             self._set_status("Reading the device…", False)
@@ -823,7 +864,26 @@ class Controller(QObject):
             self._set_status("Installing USB support…", False)
         job.start()
 
+    def _current(self, job: _Job):
+        """Wrap a slot so it only runs for the job that is on screen. A cancelled job says nothing more."""
+        def wrap(slot):
+            def call(*args):
+                if job is self._job:
+                    slot(*args)
+            return call
+        return wrap
+
+    def _on_job_finished(self, job: _Job):
+        if job in self._retired:
+            self._retired.remove(job)
+        if job is self._job:
+            self._set_busy(False)
+            if self._grok_waiting:
+                self._grok_waiting = False
+                self.grokChanged.emit()
+
     def _on_failed(self, text: str):
+        self._grok_waiting = False
         self._grok_code = ""
         self._grok_link = ""
         self.grokChanged.emit()
@@ -941,6 +1001,7 @@ class Controller(QObject):
         self._set_status("Enter the code in the browser to finish Grok sign-in.", False)
 
     def _on_grok_finished(self, result: str):
+        self._grok_waiting = False
         self._grok_code = ""
         self._grok_link = ""
         self.grokChanged.emit()
