@@ -2,7 +2,7 @@
 
 Hearth talks to one iPhone or iPad over USB. Unlock the device and tap Trust. A developer disk image is not used.
 
-macOS already has the mobile USB service. Linux needs `usbmuxd`. Windows needs Apple Mobile Device Support. Hearth checks which OS it is on and, when the service is missing or stopped, offers to install or start it. The Linux button runs `pkexec` (on the host, when Hearth itself is a Flatpak). The Windows button runs `winget install -e --id Apple.AppleMobileDeviceSupport`, or opens Apple Devices in the Store when winget is not there. The sidebar shows the command.
+macOS already has the mobile USB service. Linux needs `usbmuxd`. Windows needs Apple Mobile Device Support. Hearth checks which system it is on and, when the service is missing or stopped, offers to install or start it. On Linux the button asks for your password with `pkexec`. In the Flatpak it runs on your computer, outside the Flatpak. On Windows the button runs `winget install -e --id Apple.AppleMobileDeviceSupport`, or opens Apple Devices in the Store when winget is not there. The sidebar shows the command, so you can run it yourself if the button fails.
 
 Hearth works with one device at a time. If two are plugged in, Read from Device and Send to Device stop and ask you to unplug one. Two devices talking at once can send the layout to the wrong one. The serial number is not shown.
 
@@ -41,4 +41,4 @@ If a `hearth` directory is missing and `iphone-layout` is already there, Hearth 
 
 ## Send to Device
 
-Send to Device writes the icon list without editor row and column fields, so gaps close. Hearth reads the screen back. When the bundle ids, page count, or dock order do not match, it writes the previous layout again. A supervised device is the case where `setIconState` is known to stick. An unsupervised device often ignores it. The restore is the safety net either way.
+Send to Device writes the icon list without editor row and column fields, so gaps close. Hearth reads the screen back. When the app list, page count, or dock order do not match, it writes the previous layout again. A supervised device (managed by a school, a company, or Apple Configurator) is the case where a send is known to stick. An unsupervised device often ignores it. The restore is the safety net either way.

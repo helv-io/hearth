@@ -25,7 +25,7 @@ class DriverPlanTests(unittest.TestCase):
     def test_an_installed_daemon_is_started(self):
         report = status(linux(have_usbmuxd=True))
         self.assertEqual(report.kind, "start")
-        self.assertEqual(report.action, "Start usbmuxd")
+        self.assertEqual(report.action, "Start USB service")
         self.assertEqual(report.command[:3], ("pkexec", "sh", "-c"))
         self.assertIn("systemctl enable --now usbmuxd", report.command[3])
         self.assertIn("pkexec", report.manual)
@@ -33,7 +33,7 @@ class DriverPlanTests(unittest.TestCase):
     def test_pacman_installs_and_starts(self):
         report = status(linux(package_manager="pacman"))
         self.assertEqual(report.kind, "install")
-        self.assertEqual(report.action, "Install usbmuxd")
+        self.assertEqual(report.action, "Install USB service")
         self.assertIn("pacman -S --needed --noconfirm usbmuxd", report.command[3])
         self.assertIn("systemctl enable --now usbmuxd", report.command[3])
 

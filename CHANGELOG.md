@@ -9,6 +9,7 @@ Hearth notices a device, sets up the USB service for you, and shows folder pages
 - A folder with two or more pages shows that count in a red badge. Holding an icon at the edge of a page strip scrolls it, on the home screen and in the folder drawer. Pulling the folder handle down closes the drawer.
 - The buttons are Read from Device and Send to Device. Messages and docs no longer say pull or push.
 - Two devices at once say to unplug one, and the readme explains why.
+- Plainer wording for the USB service, the install buttons, the Flatpak, and the note on supervised devices. The sidebar tells you to copy the command and run it yourself if the button fails.
 - The readme names the Windows program `hearth.exe`, which is what the build makes.
 - On Windows, the driver install and the service checks no longer flash console windows.
 - The GitHub Release notes come from this changelog.

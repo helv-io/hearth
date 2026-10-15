@@ -36,13 +36,13 @@ Unlock the device and tap Trust. Hearth checks every two seconds. The first time
 
 One device at a time. If two are plugged in, Hearth does not guess which one you mean. It tells you to unplug one. Two devices talking at once could send a layout to the wrong phone.
 
-macOS already has the USB service. Windows and Linux do not. Hearth checks at startup. When the service is missing, the sidebar says so and the button installs it.
+macOS already has the USB service, the program that lets a computer talk to an iPhone or iPad over a cable. Windows and Linux do not. Hearth checks at startup. When the service is missing, the sidebar says so and the button installs it. On Linux it is called `usbmuxd`. On Windows it is Apple Mobile Device Support.
 
 | System | What is missing | What the button does |
 | --- | --- | --- |
-| Linux | `usbmuxd` | Installs it with the distro package manager and starts it. Password prompt via `pkexec`. |
-| Linux | `usbmuxd` is installed, socket is down | Starts it. |
-| Linux Flatpak | same | Runs that command on the host. |
+| Linux | `usbmuxd` | Installs it and starts it. Asks for your password. |
+| Linux | `usbmuxd` is installed but not running | Starts it. |
+| Linux Flatpak | same | Runs it on your computer, outside the Flatpak. |
 | Windows | Apple Mobile Device Support | `winget install -e --id Apple.AppleMobileDeviceSupport` |
 | Windows | winget is missing | Opens [Apple Devices](https://apps.microsoft.com/detail/9np83lwlpz9k) in the Store. iTunes from Apple installs the same driver. |
 | Windows | service is stopped | Starts Apple Mobile Device Service. |
@@ -50,7 +50,7 @@ macOS already has the USB service. Windows and Linux do not. Hearth checks at st
 
 A developer disk image is not required.
 
-The sidebar shows the command Hearth is about to run. If the button cannot, paste that command in a terminal on the host.
+If the button fails, copy the command shown in the sidebar and run it yourself in a terminal.
 
 ## Edit
 
@@ -70,7 +70,7 @@ Drag the icon to move it. Drag the name under it to slide between pages. Hold an
 
 ## Limits
 
-`setIconState` is ignored on many unsupervised devices, and has been since around iOS 13. A supervised device can accept it. Hearth reads the screen back after a send and restores the previous layout when the device does not keep the edit.
+Many iPhones and iPads ignore a home screen sent from a computer, and have since around iOS 13. A supervised device (one managed by a school, a company, or Apple Configurator) can accept it. After a send, Hearth reads the screen back and puts the previous layout back when the device did not keep the edit.
 
 There is no single path that works on every iPhone.
 

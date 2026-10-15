@@ -92,7 +92,7 @@ def install() -> str:
         extra = f" {tail}" if tail else ""
         manual = f" Run: {report.manual}" if report.manual else ""
         return f"Install stopped ({code}).{extra}{manual}".strip()
-    return again.detail or "The command finished, and the service is still not up."
+    return again.detail or "The command finished, but the USB service is still not running."
 
 
 def live_probe() -> Probe:
@@ -136,9 +136,9 @@ def _linux(probe: Probe) -> Report:
             True,
             False,
             "start",
-            "usbmuxd is not running",
+            "The USB service (usbmuxd) is not running",
             "The package is installed. Hearth can start it. You will get a password prompt.",
-            "Start usbmuxd",
+            "Start USB service",
             _manual(body),
             _host(probe.flatpak, "pkexec", "sh", "-c", body),
             "",
@@ -150,8 +150,8 @@ def _linux(probe: Probe) -> Report:
             True,
             False,
             "manual",
-            "Linux needs usbmuxd",
-            "Hearth could not find pacman, apt, dnf, zypper, apk, or xbps. Install usbmuxd with the command for this distro, then start it.",
+            "Linux needs the USB service (usbmuxd)",
+            "Hearth could not tell how to install software on this Linux. Install usbmuxd with your distro's package tool, then start it.",
             "",
             manual,
             (),
@@ -161,9 +161,9 @@ def _linux(probe: Probe) -> Report:
         True,
         False,
         "install",
-        "Linux needs usbmuxd",
-        "usbmuxd is the USB service that talks to an iPhone or iPad. Hearth can install it and start it. You will get a password prompt.",
-        "Install usbmuxd",
+        "Linux needs the USB service (usbmuxd)",
+        "usbmuxd lets this computer talk to an iPhone or iPad over a cable. Hearth can install it and start it. You will get a password prompt.",
+        "Install USB service",
         _manual(body),
         _host(probe.flatpak, "pkexec", "sh", "-c", body),
         "",
@@ -179,7 +179,7 @@ def _windows(probe: Probe) -> Report:
             False,
             "start",
             "Apple Mobile Device Service is stopped",
-            "The driver is installed. Hearth can start the service. Approve the Windows prompt if it appears.",
+            "The driver is installed. Hearth can start it. Approve the Windows prompt if it appears.",
             "Start driver service",
             f'net start "{SERVICE}"',
             ("net", "start", SERVICE),
@@ -192,7 +192,7 @@ def _windows(probe: Probe) -> Report:
             False,
             "install",
             "Windows needs Apple's mobile driver",
-            "Apple Mobile Device Support is the driver. Hearth installs it with winget. Approve the Windows prompt if it appears.",
+            "Apple Mobile Device Support lets this PC talk to an iPhone or iPad over a cable. Hearth can install it. Approve the Windows prompt if it appears.",
             "Install driver",
             manual,
             (
@@ -212,7 +212,7 @@ def _windows(probe: Probe) -> Report:
         False,
         "browse",
         "Windows needs Apple's mobile driver",
-        "winget is not on this PC. Install Apple Devices from the Microsoft Store. That installs the driver. iTunes from Apple does too.",
+        "This PC has no app installer (winget). Install Apple Devices from the Microsoft Store. That installs the driver. iTunes from Apple does too.",
         "Open Apple Devices",
         f"winget install -e --id {WINGET_ID}",
         (),
