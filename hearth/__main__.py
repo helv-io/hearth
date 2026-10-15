@@ -12,6 +12,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 
 from hearth import __version__
 from hearth.controller import Controller
+from hearth.net import secure_context
 from hearth.paths import resource_dir
 
 
@@ -68,6 +69,11 @@ def _selftest(report: str) -> int:
             "device code "
             + ("loaded" if all((create_using_usbmux, SpringBoardServicesService, list_devices)) else "missing")
         )
+        # Every web request trusts certifi's list. A packaged build must carry it.
+        certificates = len(secure_context().get_ca_certs())
+        lines.append(f"certificates {certificates}")
+        if certificates < 50:
+            raise RuntimeError("the bundled certificate list is missing")
         controller = Controller()
         engine = QQmlApplicationEngine()
         engine.rootContext().setContextProperty("controller", controller)

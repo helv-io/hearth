@@ -14,6 +14,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from hearth.net import secure_context
 from hearth.paths import config_dir
 
 CLIENT_ID = "b1a00492-073a-47ea-816f-4c329264a828"
@@ -47,7 +48,7 @@ def endpoints() -> dict:
     found = _fallback_endpoints()
     try:
         request = Request(ISSUER + "/.well-known/openid-configuration", headers={"Accept": "application/json"})
-        with urlopen(request, timeout=8) as response:
+        with urlopen(request, timeout=8, context=secure_context()) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except (OSError, URLError, json.JSONDecodeError, TimeoutError):
         return found
@@ -249,7 +250,7 @@ def _post_form(url: str, form: dict) -> tuple[int, dict]:
         "User-Agent": "iphone-layout",
     })
     try:
-        with urlopen(request, timeout=30) as response:
+        with urlopen(request, timeout=30, context=secure_context()) as response:
             raw = response.read().decode("utf-8")
             status = response.status
     except HTTPError as exc:

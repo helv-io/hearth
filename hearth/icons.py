@@ -11,6 +11,7 @@ from urllib.error import URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+from hearth.net import secure_context
 from hearth.paths import cache_dir
 
 USER_AGENT = "iphone-layout"
@@ -154,7 +155,7 @@ def _squircle(data: bytes) -> bytes:
 
 def _get_bytes(url: str) -> bytes:
     request = Request(url, headers={"User-Agent": USER_AGENT})
-    with urlopen(request, timeout=15) as response:
+    with urlopen(request, timeout=15, context=secure_context()) as response:
         data = response.read()
     if len(data) < 64:
         raise OSError("short image")
@@ -163,5 +164,5 @@ def _get_bytes(url: str) -> bytes:
 
 def _get_json(url: str) -> dict:
     request = Request(url, headers={"User-Agent": USER_AGENT})
-    with urlopen(request, timeout=15) as response:
+    with urlopen(request, timeout=15, context=secure_context()) as response:
         return json.loads(response.read().decode("utf-8"))
