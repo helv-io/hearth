@@ -16,7 +16,7 @@ Read from Device is `controller.pull`. Send to Device is `controller.push`, and 
 
 A read passes ProductType, DeviceClass, the display name, and ProductVersion into the screen picker. No developer disk image. Wallpaper is a separate SpringBoard call because `getHomeScreenWallpaperPNGData` closes the connection. Icons finish on their own connection first. `setIconState` ignores its response. Sleep about two seconds and read the screen back. If bundle ids, page count, or dock order do not match, write the previous layout again. That restore is the safety net. On many unsupervised phones the write is ignored, and has been since around iOS 13. A supervised phone is the case where it is known to stick. Do not claim one path works for every phone.
 
-macOS already has the USB service. Linux needs `usbmuxd`. Windows needs Apple Mobile Device Support (`winget` id `Apple.AppleMobileDeviceSupport`), or Apple Devices from the Store when winget is missing. `hearth/drivers.py` builds those commands from a fixed list. Do not pass typed text into that shell. Flatpak runs the Linux command with `flatpak-spawn --host` and needs `--talk-name=org.freedesktop.Flatpak`. The sandbox does not run its own usbmuxd. The host sockets are `/run/usbmuxd` and `/var/run/usbmuxd`.
+macOS already has the USB service. Linux needs `usbmuxd`. Windows needs Apple Mobile Device Support (`winget` id `Apple.AppleMobileDeviceSupport`), or Apple Devices from the Store when winget is missing. `hearth/drivers.py` builds those commands from a fixed list. Do not pass typed text into that shell. The Flatpak runs nothing on the computer, so it shows a plain message with manual steps instead of an install button. The sandbox does not run its own usbmuxd. The host sockets are `/run/usbmuxd` and `/var/run/usbmuxd`.
 
 ## Screens
 
@@ -97,6 +97,6 @@ The organize field wraps to the scroll view's width, with the horizontal bar for
 
 `make test` sets `QT_QPA_PLATFORM=offscreen`. CI has no device. Do not read, send, or restore a device from a test or an unattended session. A send writes the home screen.
 
-Releases are tag `v*`, matching `hearth/__init__.py` and `pyproject.toml`. Windows and macOS are unsigned PyInstaller builds. Linux is the Flatpak `io.helv.Hearth` on the KDE 6.10 runtime, built in the matching `flatpak-github-actions` image. Do not force-move a tag. A failed release gets a new version.
+Releases are tag `v*`, matching `hearth/__init__.py` and `pyproject.toml`. Windows and macOS are unsigned PyInstaller builds. Linux is the Flatpak `io.helv.Hearth` on the KDE 6.11 runtime, built in the matching `flatpak-github-actions` image. `docs/flathub.md` covers publishing it on Flathub. Do not force-move a tag. A failed release gets a new version.
 
 Do not commit pairing records, lockdown keys, home-screen dumps, or anything from a user state directory.

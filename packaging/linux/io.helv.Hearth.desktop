@@ -1,9 +1,12 @@
 [Desktop Entry]
 Name=Hearth
+GenericName=Home Screen Editor
 Comment=Edit an iPhone or iPad home screen
 Exec=hearth
 Icon=io.helv.Hearth
 Terminal=false
 Type=Application
 Categories=Utility;
+Keywords=iPhone;iPad;iOS;home screen;layout;icons;folders;widgets;
+StartupNotify=true
 StartupWMClass=hearth

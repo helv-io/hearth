@@ -3,22 +3,79 @@
   <id>io.helv.Hearth</id>
   <name>Hearth</name>
   <summary>Edit an iPhone or iPad home screen</summary>
+  <developer id="io.helv">
+    <name>helv.io</name>
+  </developer>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <description>
     <p>Read a home screen over USB, rearrange pages, folders, widgets, and the dock, then send it back.</p>
     <p>Works with a current iPhone or iPad. A send is read back, and the previous layout is restored when the device does not keep the edit.</p>
-    <p>On Linux and Windows, Hearth installs the USB service when it is missing. macOS already has it.</p>
+    <p>Hearth needs the USB service for iPhones and iPads, called usbmuxd, to be running on this computer. Most Linux systems have it, or have a package of that name.</p>
+    <p>Hearth checks once a day whether a newer version exists. That is the only thing it sends on its own. You can turn it off in Settings.</p>
   </description>
   <launchable type="desktop-id">io.helv.Hearth.desktop</launchable>
+  <branding>
+    <color type="primary" scheme_preference="light">#d5e3f5</color>
+    <color type="primary" scheme_preference="dark">#1f2933</color>
+  </branding>
+  <screenshots>
+    <screenshot type="default">
+      <image type="source">https://raw.githubusercontent.com/helv-io/hearth/v0.5.0/docs/images/editor.png</image>
+      <caption>Rearrange pages, folders, widgets and the dock on a sample home screen</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source">https://raw.githubusercontent.com/helv-io/hearth/v0.5.0/docs/images/folder.png</image>
+      <caption>Open a folder and see all of its pages</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source">https://raw.githubusercontent.com/helv-io/hearth/v0.5.0/docs/images/organizer.png</image>
+      <caption>Ask for a tidier layout, then apply or discard the suggestion</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source">https://raw.githubusercontent.com/helv-io/hearth/v0.5.0/docs/images/versions.png</image>
+      <caption>Saved versions of the layout, read from and sent to the device</caption>
+    </screenshot>
+  </screenshots>
   <url type="homepage">https://github.com/helv-io/hearth</url>
   <url type="bugtracker">https://github.com/helv-io/hearth/issues</url>
+  <url type="vcs-browser">https://github.com/helv-io/hearth</url>
+  <url type="help">https://github.com/helv-io/hearth#readme</url>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <keywords>
+    <keyword>iPhone</keyword>
+    <keyword>iPad</keyword>
+    <keyword>iOS</keyword>
+    <keyword>home screen</keyword>
+  </keywords>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+  <provides>
+    <binary>hearth</binary>
+  </provides>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="0.5.0" date="2026-10-15"/>
-    <release version="0.4.0" date="2026-10-15"/>
-    <release version="0.3.0" date="2026-10-15"/>
-    <release version="0.2.1" date="2026-10-15"/>
-    <release version="0.2.0" date="2026-10-15"/>
+    <release version="0.5.0" date="2026-10-15">
+      <url type="details">https://github.com/helv-io/hearth/releases/tag/v0.5.0</url>
+    </release>
+    <release version="0.4.0" date="2026-10-15">
+      <url type="details">https://github.com/helv-io/hearth/releases/tag/v0.4.0</url>
+    </release>
+    <release version="0.3.0" date="2026-10-15">
+      <url type="details">https://github.com/helv-io/hearth/releases/tag/v0.3.0</url>
+    </release>
+    <release version="0.2.1" date="2026-10-15">
+      <url type="details">https://github.com/helv-io/hearth/releases/tag/v0.2.1</url>
+    </release>
+    <release version="0.2.0" date="2026-10-15">
+      <url type="details">https://github.com/helv-io/hearth/releases/tag/v0.2.0</url>
+    </release>
   </releases>
 </component>
