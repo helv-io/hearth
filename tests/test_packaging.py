@@ -86,6 +86,15 @@ class MacBuildsForBothKindsOfMacTests(unittest.TestCase):
         self.assertIn('grep -qx "machine $ARCH" "$RUNNER_TEMP/selftest.txt"', text)
         self.assertIn('grep -qx "machine $ARCH" "$RUNNER_TEMP/selftest-dmg.txt"', text)
 
+    def test_the_release_publishes_both_dmgs_and_no_zip(self):
+        text = read(".github/workflows/release.yml")
+        self.assertIn("pattern: Hearth-macos*.dmg", text)
+        self.assertIn("merge-multiple: true", text)
+        self.assertIn("            " + DMG + "\n", text)
+        self.assertIn("            " + INTEL_DMG + "\n", text)
+        self.assertIn("fail_on_unmatched_files: true", text)
+        self.assertNotIn("macos.zip", text)
+
 
 class BundleVersionTests(unittest.TestCase):
     def test_the_bundle_version_comes_from_the_package(self):
