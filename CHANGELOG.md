@@ -1,12 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-10-15
 
-- Hearth checks the OS at startup. macOS needs nothing. Linux offers to install and start `usbmuxd`. Windows offers Apple Mobile Device Support through winget, or opens Apple Devices when winget is missing.
-- A plugged-in device is noticed on its own. Refresh checks again without replacing the canvas. The buttons are Read from Device and Send to Device.
-- Messages and docs use Read from Device and Send to Device. Nothing says pull or push any more. Two devices at once now say to unplug one, and the readme explains why.
+Hearth notices a device, sets up the USB service for you, and shows folder pages.
+
+- A plugged-in device is noticed on its own, and the layout is read when the canvas has no unsaved edits. Refresh checks again without replacing the canvas.
+- Hearth checks the OS at startup. macOS needs nothing. Linux offers to install and start `usbmuxd`. Windows offers Apple Mobile Device Support through winget, or opens Apple Devices when winget is missing. The Linux Flatpak runs the same command on the host.
+- A folder with two or more pages shows that count in a red badge. Holding an icon at the edge of a page strip scrolls it, on the home screen and in the folder drawer. Pulling the folder handle down closes the drawer.
+- The buttons are Read from Device and Send to Device. Messages and docs no longer say pull or push.
+- Two devices at once say to unplug one, and the readme explains why.
 - The readme names the Windows program `hearth.exe`, which is what the build makes.
 - On Windows, the driver install and the service checks no longer flash console windows.
+- Tests and builds: CI runs on every push to master. The macOS app takes its version from the package. The version test checks the package, `pyproject.toml`, the Linux metainfo, and this changelog.
 
 ## 0.2.1 — 2026-10-15
 

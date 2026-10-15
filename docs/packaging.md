@@ -1,6 +1,6 @@
 # Packaging
 
-Push a `v*` tag, such as `v0.2.1`, to run `.github/workflows/release.yml`. The test workflow runs on every push and pull request, with no device attached.
+Push a `v*` tag, such as `v0.3.0`, to run `.github/workflows/release.yml`. The test workflow runs on every push and pull request, with no device attached.
 
 ## Windows and macOS
 

@@ -1,6 +1,6 @@
 # Working on Hearth
 
-Hearth is a PySide6 app. The package is `hearth`. The console scripts are `hearth` and `iphone-layout`. The version lives in `hearth/__init__.py` and `pyproject.toml`. Those two strings must match.
+Hearth is a PySide6 app. The package is `hearth`. The console scripts are `hearth` and `iphone-layout`. The version lives in `hearth/__init__.py` and `pyproject.toml`, and the newest `<release>` in `packaging/linux/io.helv.Hearth.metainfo.xml` must match it. The PyInstaller spec reads it from the package. `tests/test_version.py` checks all of them and the changelog.
 
 ## Checks
 
@@ -26,8 +26,10 @@ Do not pull, push, or restore a device from a test or an agent session unless th
 
 ## Releases
 
-`.github/workflows/ci.yml` runs the tests. `.github/workflows/release.yml` builds Windows, macOS, and a Flatpak when a `v*` tag is pushed. The tag should match the version, like `v0.2.1`. Windows and macOS artifacts are unsigned. Do not commit pairing records, lockdown keys, home-screen dumps, or anything from a user state directory.
+`.github/workflows/ci.yml` runs the tests. `.github/workflows/release.yml` builds Windows, macOS, and a Flatpak when a `v*` tag is pushed. The tag should match the version, like `v0.3.0`. Windows and macOS artifacts are unsigned. Do not commit pairing records, lockdown keys, home-screen dumps, or anything from a user state directory.
 
 ## Docs
+
+Every user-facing change updates `README.md` and `CHANGELOG.md` in the same commit.
 
 User-facing behavior goes in `README.md` and `docs/`. `docs/knowledge.md` is the accumulated behavior of the editor. Read it before changing layout, drag, folders, or the device connection. `CHANGELOG.md` gets a section for the version you ship. `TODO.md` and `ROADMAP.md` are the open work, not a scratch pad for the current edit.
