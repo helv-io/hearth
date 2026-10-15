@@ -82,10 +82,14 @@ jobs:
           test "$total" -gt 0
           test "$missing" -eq 0
           # The oldest macOS this build asks for is the highest minimum among its parts.
-          floor="$(while IFS= read -r -d '' item; do
-              file "$item" | grep -q 'Mach-O' || continue
-              vtool -arch "$ARCH" -show-build "$item" 2>/dev/null | awk '/minos/ {print $2}'
-            done < <(find dist/Hearth.app -type f -print0) | sort -V | tail -1)"
+          while IFS= read -r -d '' item; do
+            file "$item" | grep -q 'Mach-O' || continue
+            minimum="$(vtool -arch "$ARCH" -show-build "$item" 2>/dev/null | awk '/minos/ {print $2}' | head -1)"
+            echo "${minimum:-0} ${item#dist/Hearth.app/}"
+          done < <(find dist/Hearth.app -type f -print0) | sort -V > "$RUNNER_TEMP/minimums.txt"
+          echo "highest minimum macOS, by part:"
+          tail -8 "$RUNNER_TEMP/minimums.txt"
+          floor="$(tail -1 "$RUNNER_TEMP/minimums.txt" | cut -d' ' -f1)"
           echo "needs macOS $floor or newer"
           {
             echo "### $DMG"
