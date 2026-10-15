@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import platform
 import sys
 from pathlib import Path
 
@@ -60,6 +61,7 @@ def _selftest(report: str) -> int:
         app = QGuiApplication([sys.argv[0]])
         qml = resource_dir("qml") / "Main.qml"
         lines.append(f"qml {qml}")
+        lines.append(f"machine {platform.machine()}")
         # The device code imports these late, so a packaged build must carry them.
         from pymobiledevice3.lockdown import create_using_usbmux
         from pymobiledevice3.services.springboard import SpringBoardServicesService
