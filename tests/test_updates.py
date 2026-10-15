@@ -14,7 +14,6 @@ from unittest import mock
 from hearth import updates
 
 ROOT = Path(__file__).resolve().parents[1]
-DAY = updates.CHECK_EVERY_SECONDS
 
 
 class Folder(unittest.TestCase):
@@ -80,45 +79,44 @@ class VersionTests(unittest.TestCase):
 
 
 class OfferTests(Folder):
-    NOW = 1_800_000_000.0
+    """The check at start."""
 
     def fetch(self, *tags):
         return mock.Mock(return_value=list(tags))
 
     def test_a_newer_tag_is_offered(self):
         fetch = self.fetch("v0.4.0", "v0.5.0")
-        self.assertEqual(updates.offer("0.4.0", self.NOW, fetch), "0.5.0")
+        self.assertEqual(updates.offer("0.4.0", fetch), "0.5.0")
 
     def test_nothing_newer_means_no_popup(self):
-        self.assertEqual(updates.offer("0.5.0", self.NOW, self.fetch("v0.5.0", "v0.4.0")), "")
-        self.assertEqual(updates.offer("0.6.0", self.NOW + 2 * DAY, self.fetch("v0.5.0")), "")
+        self.assertEqual(updates.offer("0.5.0", self.fetch("v0.5.0", "v0.4.0")), "")
+        self.assertEqual(updates.offer("0.6.0", self.fetch("v0.5.0")), "")
 
     def test_a_pre_release_tag_is_not_offered(self):
-        self.assertEqual(updates.offer("0.4.0", self.NOW, self.fetch("v0.4.0", "v0.5.0-rc1")), "")
+        self.assertEqual(updates.offer("0.4.0", self.fetch("v0.4.0", "v0.5.0-rc1")), "")
 
-    def test_it_asks_once_a_day(self):
+    def test_every_start_asks(self):
         fetch = self.fetch("v0.5.0")
-        updates.offer("0.4.0", self.NOW, fetch)
-        again = updates.offer("0.4.0", self.NOW + DAY - 60, fetch)
-        self.assertEqual(fetch.call_count, 1)
-        self.assertEqual(again, "0.5.0", "Not now comes back from the saved answer, with no request")
-        updates.offer("0.4.0", self.NOW + DAY + 1, fetch)
-        self.assertEqual(fetch.call_count, 2)
+        for _ in range(3):
+            self.assertEqual(updates.offer("0.4.0", fetch), "0.5.0")
+        self.assertEqual(fetch.call_count, 3)
 
-    def test_a_clock_set_back_does_not_block_checks_forever(self):
-        fetch = self.fetch("v0.5.0")
-        updates.offer("0.4.0", self.NOW, fetch)
-        updates.offer("0.4.0", self.NOW - 10 * DAY, fetch)
-        self.assertEqual(fetch.call_count, 2)
+    def test_a_new_release_shows_at_the_very_next_start(self):
+        self.assertEqual(updates.offer("0.4.0", self.fetch("v0.4.0")), "")
+        self.assertEqual(updates.offer("0.4.0", self.fetch("v0.4.0", "v0.4.1")), "0.4.1")
+
+    def test_there_is_no_once_a_day_limit_left(self):
+        self.assertFalse(hasattr(updates, "CHECK_EVERY_SECONDS"))
+        self.assertFalse(hasattr(updates, "due"))
+        self.assertNotIn("last_check", updates.load_state())
 
     def test_a_skipped_version_stays_quiet(self):
         updates.skip("0.5.0")
-        fetch = self.fetch("v0.5.0")
-        self.assertEqual(updates.offer("0.4.0", self.NOW, fetch), "")
+        self.assertEqual(updates.offer("0.4.0", self.fetch("v0.5.0")), "")
 
     def test_a_version_after_the_skipped_one_is_offered(self):
         updates.skip("0.5.0")
-        self.assertEqual(updates.offer("0.4.0", self.NOW, self.fetch("v0.5.1")), "0.5.1")
+        self.assertEqual(updates.offer("0.4.0", self.fetch("v0.5.1")), "0.5.1")
 
     def test_the_skip_is_remembered_across_runs(self):
         updates.skip("0.5.0")
@@ -127,13 +125,13 @@ class OfferTests(Folder):
     def test_turned_off_means_no_request_and_no_popup(self):
         updates.set_enabled(False)
         fetch = self.fetch("v0.5.0")
-        self.assertEqual(updates.offer("0.4.0", self.NOW, fetch), "")
+        self.assertEqual(updates.offer("0.4.0", fetch), "")
         fetch.assert_not_called()
 
     def test_a_dev_build_makes_no_request(self):
         fetch = self.fetch("v9.9.9")
         for build in ("", "0.0.0", "0.5.0.dev1"):
-            self.assertEqual(updates.offer(build, self.NOW, fetch), "")
+            self.assertEqual(updates.offer(build, fetch), "")
         fetch.assert_not_called()
 
     def test_failures_are_silent(self):
@@ -145,37 +143,64 @@ class OfferTests(Folder):
         ]
         for failure in failures:
             with self.subTest(failure=failure):
-                self.assertEqual(updates.offer("0.4.0", self.NOW, mock.Mock(side_effect=failure)), "")
+                self.assertEqual(updates.offer("0.4.0", mock.Mock(side_effect=failure)), "")
 
     def test_a_useless_answer_is_silent(self):
-        self.assertEqual(updates.offer("0.4.0", self.NOW, self.fetch()), "")
-        self.assertEqual(updates.offer("0.4.0", self.NOW + 2 * DAY, self.fetch("nightly")), "")
+        self.assertEqual(updates.offer("0.4.0", self.fetch()), "")
+        self.assertEqual(updates.offer("0.4.0", self.fetch("nightly")), "")
 
-    def test_being_offline_is_asked_again_next_start(self):
-        updates.offer("0.4.0", self.NOW, mock.Mock(side_effect=updates.Unreachable("offline")))
+    def test_a_failure_is_asked_again_at_the_next_start(self):
+        updates.offer("0.4.0", mock.Mock(side_effect=ValueError("GitHub answered 403")))
         fetch = self.fetch("v0.5.0")
-        self.assertEqual(updates.offer("0.4.0", self.NOW + 60, fetch), "0.5.0")
-
-    def test_a_rate_limit_waits_a_day(self):
-        updates.offer("0.4.0", self.NOW, mock.Mock(side_effect=ValueError("GitHub answered 403")))
-        fetch = self.fetch("v0.5.0")
-        self.assertEqual(updates.offer("0.4.0", self.NOW + 60, fetch), "")
-        fetch.assert_not_called()
+        self.assertEqual(updates.offer("0.4.0", fetch), "0.5.0")
+        fetch.assert_called_once()
 
     def test_a_failure_keeps_the_last_good_answer(self):
-        updates.offer("0.4.0", self.NOW, self.fetch("v0.5.0"))
-        later = updates.offer("0.4.0", self.NOW + 2 * DAY, mock.Mock(side_effect=ValueError("403")))
+        updates.offer("0.4.0", self.fetch("v0.5.0"))
+        later = updates.offer("0.4.0", mock.Mock(side_effect=ValueError("403")))
         self.assertEqual(later, "0.5.0")
 
     def test_a_damaged_state_file_is_ignored(self):
         updates._path().write_text("{not json", encoding="utf-8")
-        self.assertEqual(updates.offer("0.4.0", self.NOW, self.fetch("v0.5.0")), "0.5.0")
-        updates._path().write_text(json.dumps({"enabled": "no", "last_check": "x", "skipped": 3}), encoding="utf-8")
+        self.assertEqual(updates.offer("0.4.0", self.fetch("v0.5.0")), "0.5.0")
+        updates._path().write_text(json.dumps({"enabled": "no", "skipped": 3}), encoding="utf-8")
         self.assertTrue(updates.load_state()["enabled"])
 
     def test_an_unwritable_folder_is_silent(self):
         with mock.patch.object(Path, "write_text", side_effect=OSError("read only")):
-            self.assertEqual(updates.offer("0.4.0", self.NOW, self.fetch("v0.5.0")), "0.5.0")
+            self.assertEqual(updates.offer("0.4.0", self.fetch("v0.5.0")), "0.5.0")
+
+
+class CheckNowTests(Folder):
+    """The Check for updates button."""
+
+    def fetch(self, *tags):
+        return mock.Mock(return_value=list(tags))
+
+    def test_newer_gives_the_version(self):
+        self.assertEqual(updates.check_now("0.4.0", self.fetch("v0.4.0", "v0.5.0")), (updates.NEWER, "0.5.0"))
+
+    def test_the_same_version_is_up_to_date(self):
+        self.assertEqual(updates.check_now("0.5.0", self.fetch("v0.5.0", "v0.4.0")), (updates.CURRENT, ""))
+
+    def test_a_newer_version_that_was_skipped_is_still_reported(self):
+        updates.skip("0.5.0")
+        self.assertEqual(updates.check_now("0.4.0", self.fetch("v0.5.0")), (updates.NEWER, "0.5.0"))
+
+    def test_it_asks_even_when_the_startup_check_is_off(self):
+        updates.set_enabled(False)
+        fetch = self.fetch("v0.5.0")
+        self.assertEqual(updates.check_now("0.4.0", fetch), (updates.NEWER, "0.5.0"))
+        fetch.assert_called_once()
+
+    def test_every_kind_of_failure_is_failed(self):
+        for failure in (updates.Unreachable("offline"), ValueError("GitHub answered 403"), RuntimeError("x")):
+            with self.subTest(failure=failure):
+                self.assertEqual(updates.check_now("0.4.0", mock.Mock(side_effect=failure)), (updates.FAILED, ""))
+
+    def test_an_answer_with_no_release_is_failed_not_up_to_date(self):
+        self.assertEqual(updates.check_now("0.4.0", self.fetch()), (updates.FAILED, ""))
+        self.assertEqual(updates.check_now("0.4.0", self.fetch("nightly", "v0.5.0-rc1")), (updates.FAILED, ""))
 
 
 class FetchTests(unittest.TestCase):

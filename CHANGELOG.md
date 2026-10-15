@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.4 — 2026-10-15
+
+The Mac app now has its own icon, and updates are easier to find.
+
+- On a Mac, Hearth showed the generic script icon, a snake on a page, in the disk image, Finder and the Dock, because the app had no icon of its own. It now has one, in every size macOS uses, and the disk image uses it too. The icon in the window and Dock while Hearth runs matches it.
+- Hearth now looks for a newer version every time it starts, not once a day. It still says nothing when you are offline, and Settings can still turn it off. Skip this version still works.
+- Settings has a Check for updates button. It checks right away. If there is a newer version it shows the same card with Open download page, even for a version you skipped. If not, it says You're up to date. If Hearth cannot reach GitHub, it says so and you can try again. Only the button shows it is busy, and the rest of the app stays usable. It works even when the check on startup is off.
+- The update card now shows above Settings instead of behind it.
+
 ## 0.5.3 — 2026-10-15
 
 Organizing no longer fails just because the model is slow, and you can cancel it.

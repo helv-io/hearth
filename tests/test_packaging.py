@@ -38,7 +38,7 @@ class MacDiskImageTests(unittest.TestCase):
 
     def test_the_macos_build_makes_the_dmg_named_hearth_and_checks_it(self):
         text = read(".github/workflows/macos.yml")
-        self.assertRegex(text, r'dmgbuild .*-D app=dist/Hearth\.app Hearth "\$DMG"')
+        self.assertRegex(text, r'dmgbuild .*-D app=dist/Hearth\.app .*Hearth "\$DMG"')
         self.assertIn("hdiutil attach", text)
         self.assertIn("--selftest", text)
         self.assertIn("name: ${{ matrix.dmg }}", text)
@@ -122,3 +122,58 @@ class BundleVersionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MacIconTests(unittest.TestCase):
+    """Without an .icns in the bundle, macOS shows the generic script icon."""
+
+    def test_the_bundle_gets_an_icns_and_names_it(self):
+        spec = read("packaging/pyinstaller/hearth.spec")
+        self.assertRegex(spec, r"BUNDLE\([^)]*icon=str\(icns\)")
+        self.assertIn('"CFBundleIconFile": icns.name', spec)
+        self.assertIn('"Hearth.icns"', spec)
+
+    def test_the_build_makes_the_icns_before_pyinstaller_and_checks_it(self):
+        text = read(".github/workflows/macos.yml")
+        self.assertLess(text.index("make-icns.sh"), text.index("pyinstaller packaging/pyinstaller/hearth.spec"))
+        for needle in ("CFBundleIconFile", "Contents/Resources/", "plutil -lint", "iconutil -c iconset", "icon-check"):
+            self.assertIn(needle, text)
+
+    def test_the_disk_image_uses_the_same_icon(self):
+        text = read(".github/workflows/macos.yml")
+        self.assertIn("-D icon=packaging/macos/Hearth.icns", text)
+        self.assertIn(".VolumeIcon.icns", text)
+        self.assertEqual(self.settings_icon("packaging/macos/Hearth.icns"), "packaging/macos/Hearth.icns")
+        self.assertIsNone(self.settings_icon(None))
+
+    def settings_icon(self, icon):
+        defines = {"icon": icon} if icon else {}
+        scope = {"defines": defines}
+        exec(compile(read("packaging/macos/dmg-settings.py"), "dmg-settings.py", "exec"), scope)
+        return scope.get("icon")
+
+    def test_the_icon_script_builds_every_size_from_the_master(self):
+        script = read("packaging/macos/make-icns.sh")
+        self.assertIn("for size in 16 32 128 256 512", script)
+        self.assertIn("@2x", script)
+        self.assertIn("iconutil -c icns", script)
+
+    def test_the_master_is_a_transparent_1024_square_with_clear_space(self):
+        from PySide6.QtGui import QImage, qAlpha
+
+        image = QImage(str(ROOT / "packaging" / "macos" / "icon-1024.png"))
+        self.assertEqual((image.width(), image.height()), (1024, 1024))
+        self.assertTrue(image.hasAlphaChannel())
+        self.assertEqual(qAlpha(image.pixel(0, 0)), 0, "transparent corner")
+        self.assertEqual(qAlpha(image.pixel(512, 512)), 255)
+        # Apple's grid: an 824 px tile, so 100 px of clear space on each side.
+        row = [x for x in range(1024) if qAlpha(image.pixel(x, 512)) > 200]
+        column = [y for y in range(1024) if qAlpha(image.pixel(512, y)) > 200]
+        self.assertTrue(95 <= row[0] <= 105 and 918 <= row[-1] <= 930, (row[0], row[-1]))
+        self.assertTrue(95 <= column[0] <= 105 and 918 <= column[-1] <= 930, (column[0], column[-1]))
+
+    def test_the_window_icon_is_a_picture_that_ships(self):
+        from hearth.paths import window_icon_path
+
+        self.assertTrue(window_icon_path().is_file())
+        self.assertTrue((ROOT / "hearth" / "qml" / "hearth-macos.png").is_file())

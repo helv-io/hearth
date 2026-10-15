@@ -246,11 +246,19 @@ else:
         upx=False,
     )
     coll = COLLECT(exe, a.binaries, a.datas, name="hearth", upx=False)
+    # The app's icon in Finder, the Dock and the disk image. Without one macOS shows
+    # the generic script icon. packaging/macos/make-icns.sh builds this file from
+    # packaging/macos/icon-1024.png, and macos.yml runs it before PyInstaller.
+    icns = root / "packaging" / "macos" / "Hearth.icns"
+    if not icns.is_file():
+        raise SystemExit(f"{icns} is missing. Run packaging/macos/make-icns.sh first.")
     app = BUNDLE(
         coll,
         name="Hearth.app",
+        icon=str(icns),
         bundle_identifier="io.helv.Hearth",
         info_plist={
+            "CFBundleIconFile": icns.name,
             "CFBundleName": "Hearth",
             "CFBundleDisplayName": "Hearth",
             "CFBundleShortVersionString": __version__,

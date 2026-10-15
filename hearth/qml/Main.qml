@@ -33,6 +33,7 @@ ApplicationWindow {
         keyField.text = ""
         forgetKey.checked = false
         updatesBox.checked = controller.checkUpdates
+        controller.clearUpdateResult()
         for (let i = 0; i < providerBox.count; i++) {
             if (providerBox.valueAt(i) === controller.provider) {
                 providerBox.currentIndex = i
@@ -864,7 +865,7 @@ ApplicationWindow {
         anchors.bottom: parent.bottom
         anchors.rightMargin: 16
         anchors.bottomMargin: 32 + 16
-        z: 19
+        z: 22  // above Settings, so the answer to Check for updates is never hidden behind it
         shown: controller.updateAvailable
         version: controller.updateVersion
         current: controller.appVersion
@@ -1041,9 +1042,27 @@ ApplicationWindow {
                 Text {
                     width: parent.width
                     wrapMode: Text.WordWrap
-                    text: "Hearth asks GitHub once a day whether a newer version exists. Nothing else is sent."
+                    text: "Hearth asks GitHub whether a newer version exists. Nothing else is sent."
                     color: "#6E6E73"
                     font.pixelSize: 11
+                }
+                Button {
+                    id: checkNow
+                    objectName: "checkUpdatesNow"
+                    text: controller.updateChecking ? "Checking…" : "Check for updates"
+                    enabled: !controller.updateChecking
+                    onClicked: controller.checkForUpdatesNow()
+                    background: Rectangle { radius: 8; color: "#1C1C22"; border.color: "#3A3A40"; border.width: 1 }
+                    contentItem: Text { text: checkNow.text; color: checkNow.enabled ? "white" : "#8E8E93"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; leftPadding: 12; rightPadding: 12 }
+                }
+                Text {
+                    objectName: "updateResult"
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    visible: text !== ""
+                    text: controller.updateResult
+                    color: "#C7C7CC"
+                    font.pixelSize: 12
                 }
                 Row {
                     spacing: 8
