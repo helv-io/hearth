@@ -140,6 +140,21 @@ def _ready_mac() -> Report:
 def _linux(probe: Probe) -> Report:
     if probe.socket_open:
         return Report(True, True, "ready")
+    if probe.flatpak:
+        # The Flatpak sandbox cannot install or start anything on the computer,
+        # and Hearth does not ask for the permission that would allow it.
+        return Report(
+            True,
+            False,
+            "manual",
+            headline="Hearth cannot see the USB service",
+            detail=(
+                "Linux needs a small USB service to talk to an iPhone or iPad. If it is missing, "
+                "look for a package named usbmuxd in your software center and install it. "
+                "Then plug in your iPhone or iPad and start Hearth again."
+            ),
+            manual=_manual_choices(),
+        )
     if probe.have_usbmuxd:
         body = "systemctl enable --now usbmuxd" if probe.have_systemctl else "usbmuxd"
         return Report(
@@ -150,7 +165,7 @@ def _linux(probe: Probe) -> Report:
             detail="Hearth can start it for you. You may be asked for your password.",
             action="Start USB service",
             manual=_manual(body),
-            command=_host(probe.flatpak, "pkexec", "sh", "-c", body),
+            command=("pkexec", "sh", "-c", body),
         )
     body = _install_body(probe.package_manager, probe.have_systemctl)
     if not body:
@@ -170,7 +185,7 @@ def _linux(probe: Probe) -> Report:
         detail="The USB service lets this computer talk to an iPhone or iPad over a cable. Hearth installs it for you. You may be asked for your password.",
         action="Install USB service",
         manual=_manual(body),
-        command=_host(probe.flatpak, "pkexec", "sh", "-c", body),
+        command=("pkexec", "sh", "-c", body),
     )
 
 
@@ -250,50 +265,19 @@ def _manual_choices() -> str:
     ))
 
 
-def _host(flatpak: bool, *args: str) -> tuple[str, ...]:
-    if flatpak:
-        return ("flatpak-spawn", "--host", *args)
-    return args
-
-
 def _linux_inventory(flatpak: bool) -> dict[str, object]:
-    if not flatpak:
-        manager = next((name for name in MANAGERS if shutil.which(name)), "")
-        usbmuxd = shutil.which("usbmuxd") is not None or any(Path(path).is_file() for path in USBMUXD_FILES)
-        return {
-            "socket": any(Path(path).exists() for path in SOCKETS),
-            "usbmuxd": usbmuxd,
-            "systemctl": shutil.which("systemctl") is not None,
-            "manager": manager,
-        }
-    script = """
-socket=0
-if [ -S /run/usbmuxd ] || [ -S /var/run/usbmuxd ]; then socket=1; fi
-printf 'SOCKET=%s\\n' "$socket"
-if command -v usbmuxd >/dev/null || [ -x /usr/sbin/usbmuxd ] || [ -x /usr/bin/usbmuxd ]; then
-  echo USBMUXD=1
-else
-  echo USBMUXD=0
-fi
-if command -v systemctl >/dev/null; then echo SYSTEMCTL=1; else echo SYSTEMCTL=0; fi
-for c in pacman apt-get dnf zypper apk xbps-install; do
-  if command -v "$c" >/dev/null; then echo "MANAGER=$c"; break; fi
-done
-"""
-    code, text = _run(("flatpak-spawn", "--host", "sh", "-c", script), timeout=8)
-    found: dict[str, object] = {"socket": False, "usbmuxd": False, "systemctl": False, "manager": ""}
-    if code != 0:
-        return found
-    for line in text.splitlines():
-        if line == "SOCKET=1":
-            found["socket"] = True
-        elif line == "USBMUXD=1":
-            found["usbmuxd"] = True
-        elif line == "SYSTEMCTL=1":
-            found["systemctl"] = True
-        elif line.startswith("MANAGER="):
-            found["manager"] = line.split("=", 1)[1].strip()
-    return found
+    socket = any(Path(path).exists() for path in SOCKETS)
+    if flatpak:
+        # Inside the sandbox only the socket is visible, and nothing is run on the computer.
+        return {"socket": socket, "usbmuxd": False, "systemctl": False, "manager": ""}
+    manager = next((name for name in MANAGERS if shutil.which(name)), "")
+    usbmuxd = shutil.which("usbmuxd") is not None or any(Path(path).is_file() for path in USBMUXD_FILES)
+    return {
+        "socket": socket,
+        "usbmuxd": usbmuxd,
+        "systemctl": shutil.which("systemctl") is not None,
+        "manager": manager,
+    }
 
 
 def _windows_service() -> tuple[bool, bool]:

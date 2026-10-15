@@ -42,10 +42,22 @@ class DriverPlanTests(unittest.TestCase):
         self.assertIn("DEBIAN_FRONTEND=noninteractive", report.command[3])
         self.assertIn("apt-get install -y usbmuxd", report.command[3])
 
-    def test_flatpak_runs_the_install_on_the_host(self):
+    def test_flatpak_runs_nothing_on_the_computer(self):
         report = status(linux(flatpak=True, package_manager="pacman"))
-        self.assertEqual(report.command[:4], ("flatpak-spawn", "--host", "pkexec", "sh"))
+        self.assertEqual(report.kind, "manual")
+        self.assertEqual(report.command, ())
+        self.assertEqual(report.action, "")
+        self.assertIn("apt install", report.manual)
         self.assertNotIn("flatpak-spawn", report.manual)
+
+    def test_flatpak_with_a_socket_is_ready(self):
+        self.assertTrue(status(linux(flatpak=True, socket_open=True)).ready)
+
+    def test_the_code_never_reaches_out_of_the_sandbox(self):
+        import inspect
+        from hearth import drivers
+
+        self.assertNotIn("flatpak-spawn", inspect.getsource(drivers))
 
     def test_an_unknown_distro_shows_commands_and_does_not_guess(self):
         report = status(linux(have_systemctl=False))
