@@ -54,13 +54,16 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
+      options: --privileged
     steps:
       - uses: actions/checkout@v4
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: hearth.flatpak
           manifest-path: packaging/flatpak/io.helv.Hearth.yml
-          cache-key: flatpak-kde-6.11
+          cache-key: flatpak-kde-6.10
       - uses: softprops/action-gh-release@v2
         with:
           files: hearth.flatpak

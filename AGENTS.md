@@ -1,6 +1,6 @@
 # Working on Hearth
 
-Hearth is a PySide6 app. The package is `hearth`. The console scripts are `hearth` and `iphone-layout`. Version `0.2.0` lives in `hearth/__init__.py` and `pyproject.toml`. Those two strings must match.
+Hearth is a PySide6 app. The package is `hearth`. The console scripts are `hearth` and `iphone-layout`. The version lives in `hearth/__init__.py` and `pyproject.toml`. Those two strings must match.
 
 ## Checks
 
@@ -25,7 +25,7 @@ Do not pull, push, or restore a device from a test or an agent session unless th
 
 ## Releases
 
-`.github/workflows/ci.yml` runs the tests. `.github/workflows/release.yml` builds Windows, macOS, and a Flatpak when a `v*` tag is pushed. The tag should match the version, like `v0.2.0`. Windows and macOS artifacts are unsigned. Do not commit pairing records, lockdown keys, home-screen dumps, or anything from a user state directory.
+`.github/workflows/ci.yml` runs the tests. `.github/workflows/release.yml` builds Windows, macOS, and a Flatpak when a `v*` tag is pushed. The tag should match the version, like `v0.2.1`. Windows and macOS artifacts are unsigned. Do not commit pairing records, lockdown keys, home-screen dumps, or anything from a user state directory.
 
 ## Docs
 

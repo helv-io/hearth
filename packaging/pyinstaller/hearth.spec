@@ -53,7 +53,7 @@ if sys.platform == "darwin":
         info_plist={
             "CFBundleName": "Hearth",
             "CFBundleDisplayName": "Hearth",
-            "CFBundleShortVersionString": "0.2.0",
+            "CFBundleShortVersionString": "0.2.1",
             "NSHighResolutionCapable": True,
         },
     )

@@ -1,6 +1,6 @@
 # Packaging
 
-Version `0.2.0` is the first tag. Push `v0.2.0` to run `.github/workflows/release.yml`. The test workflow runs on every push and pull request, with no device attached.
+Push a `v*` tag, such as `v0.2.1`, to run `.github/workflows/release.yml`. The test workflow runs on every push and pull request, with no device attached.
 
 ## Windows and macOS
 
@@ -10,7 +10,7 @@ The spec collects PySide6 and pymobiledevice3. QML is unpacked beside the frozen
 
 ## Linux Flatpak
 
-The manifest is `packaging/flatpak/io.helv.Hearth.yml`. The runtime is `org.kde.Platform` 6.11, which supplies Qt 6. pip installs Hearth and its dependencies into the sandbox. The finish arguments open Wayland, a fallback X11 socket, the network (icon downloads and Grok sign-in), USB, and the host usbmux sockets at `/run/usbmuxd` and `/var/run/usbmuxd`.
+The manifest is `packaging/flatpak/io.helv.Hearth.yml`. The runtime is `org.kde.Platform` 6.10, which supplies Qt 6. The release job uses the matching `ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10` image, because that image is what actually contains `flatpak-builder`. pip installs Hearth and its dependencies into the sandbox. The finish arguments open Wayland, a fallback X11 socket, the network (icon downloads and Grok sign-in), USB, and the host usbmux sockets at `/run/usbmuxd` and `/var/run/usbmuxd`.
 
 Install a bundle with:
 
@@ -21,7 +21,7 @@ flatpak run io.helv.Hearth
 
 The host still needs `usbmuxd`. The sandbox does not run its own copy.
 
-If Flathub has retired the 6.11 runtime, bump `runtime-version` in the manifest and the cache key in the release workflow together.
+If Flathub retires the 6.10 runtime, bump `runtime-version`, the container image tag, and the cache key together.
 
 ## Local check
 
