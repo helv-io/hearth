@@ -56,8 +56,16 @@ jobs:
           test "$(python -c 'import platform; print(platform.machine())')" = "$ARCH"
           # Rosetta would print 1 here. The build and the check must run natively.
           test "$(sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)" = 0
+      # Wheels only for everything Hearth depends on. cryptography 50 has no Intel Mac
+      # wheel, so pip would compile it, which takes minutes and links the runner's older
+      # OpenSSL instead of carrying its own. With wheels only, pip picks cryptography 48
+      # on Intel, which has one. If a dependency ever has no wheel, this step fails here
+      # and says which one.
       - name: Install
-        run: pip install -e . pyinstaller
+        run: |
+          pip install --only-binary=:all: "PySide6>=6.6" "pymobiledevice3>=4.0" pyinstaller
+          pip install --no-deps -e .
+          pip list 2>/dev/null | grep -i -E "^(pyside6|pymobiledevice3|cryptography|pyinstaller) "
       - name: Build
         run: pyinstaller packaging/pyinstaller/hearth.spec
       - name: Check that the app is built for this kind of Mac

@@ -75,6 +75,13 @@ class MacBuildsForBothKindsOfMacTests(unittest.TestCase):
         # macos-13 is retired. macos-15-intel is GitHub's last Intel label.
         self.assertEqual(got[INTEL_DMG][0], "macos-15-intel")
 
+    def test_dependencies_come_as_wheels_so_nothing_is_compiled_on_the_runner(self):
+        # cryptography 50 has no Intel Mac wheel. Compiling it linked the runner's
+        # old OpenSSL and the app failed to start.
+        text = read(".github/workflows/macos.yml")
+        self.assertIn('pip install --only-binary=:all: "PySide6>=6.6" "pymobiledevice3>=4.0" pyinstaller', text)
+        self.assertIn("pip install --no-deps -e .", text)
+
     def test_one_failing_build_does_not_hide_the_other(self):
         self.assertIn("fail-fast: false", read(".github/workflows/macos.yml"))
 
