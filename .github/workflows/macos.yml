@@ -103,8 +103,13 @@ jobs:
         run: |
           dist/Hearth.app/Contents/MacOS/hearth --version "$RUNNER_TEMP/version.txt"
           cat "$RUNNER_TEMP/version.txt"
-          time dist/Hearth.app/Contents/MacOS/hearth --selftest "$RUNNER_TEMP/selftest.txt"
-          cat "$RUNNER_TEMP/selftest.txt"
+          # Show what the check found even when it fails, then fail.
+          started=$SECONDS
+          status=0
+          dist/Hearth.app/Contents/MacOS/hearth --selftest "$RUNNER_TEMP/selftest.txt" || status=$?
+          echo "the check took $((SECONDS - started)) seconds and exited with $status"
+          cat "$RUNNER_TEMP/selftest.txt" || true
+          test "$status" -eq 0
           grep -qx "machine $ARCH" "$RUNNER_TEMP/selftest.txt"
           grep -qx ok "$RUNNER_TEMP/selftest.txt"
       - name: Make the disk image
@@ -128,8 +133,11 @@ jobs:
           shown="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Volumes/Hearth/Hearth.app/Contents/Info.plist)"
           echo "package $expected, app bundle $shown"
           test -n "$expected" && test "$expected" = "$shown"
-          /Volumes/Hearth/Hearth.app/Contents/MacOS/hearth --selftest "$RUNNER_TEMP/selftest-dmg.txt"
-          cat "$RUNNER_TEMP/selftest-dmg.txt"
+          status=0
+          /Volumes/Hearth/Hearth.app/Contents/MacOS/hearth --selftest "$RUNNER_TEMP/selftest-dmg.txt" || status=$?
+          echo "the check exited with $status"
+          cat "$RUNNER_TEMP/selftest-dmg.txt" || true
+          test "$status" -eq 0
           grep -qx "machine $ARCH" "$RUNNER_TEMP/selftest-dmg.txt"
           grep -qx ok "$RUNNER_TEMP/selftest-dmg.txt"
       - uses: actions/upload-artifact@v4
