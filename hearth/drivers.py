@@ -85,7 +85,7 @@ def install() -> str:
         _ensure_windows_service()
     again = status()
     if again.ready or not again.needed:
-        return "USB support is ready. Plug in an iPhone or iPad and pull."
+        return "USB support is ready. Plug in an iPhone or iPad. Hearth reads it when it appears."
     if code == 126:
         return "The password prompt was closed."
     if code != 0:

@@ -190,7 +190,7 @@ class Controller(QObject):
         if self._device_name:
             return ""
         if self._link == "many":
-            return "Leave one plugged in."
+            return "Unplug one."
         if self._link == "one":
             return "Found one device."
         return ""
@@ -492,7 +492,7 @@ class Controller(QObject):
             if kind == "one":
                 self._set_status("One device is connected.", False)
             elif kind == "many":
-                self._set_status("More than one device is connected. Leave one plugged in.", True)
+                self._set_status("More than one device is connected. Unplug one.", True)
             else:
                 self._set_status("No device is connected.", True)
             return

@@ -26,7 +26,7 @@ def friendly(exc: BaseException) -> str:
     text = str(exc).strip() or exc.__class__.__name__
     lowered = text.lower()
     if "more than one" in lowered:
-        return "More than one iPhone or iPad is connected. Leave one plugged in and pull again."
+        return "More than one iPhone or iPad is connected. Unplug one and try again."
     if "usbmux" in lowered or "no device" in lowered or "device not found" in lowered or "connection refused" in lowered:
         report = drivers.status()
         if report.needed and not report.ready:

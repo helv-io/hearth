@@ -38,7 +38,7 @@ IPAD = Screen("ipad", 6, 5, 15, 744, 520, False, "iPad")
 
 _DROPPED = (
     "This model is too old for the current OS. A read still works. "
-    "A push can be ignored on a device Apple no longer updates."
+    "A send can be ignored on a device Apple no longer updates."
 )
 
 

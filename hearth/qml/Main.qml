@@ -617,7 +617,7 @@ ApplicationWindow {
                     Text {
                         width: parent.width
                         wrapMode: Text.WordWrap
-                        text: "Say how you want it. The model proposes a layout. Applying it stays on this canvas until you push."
+                        text: "Say how you want it. The model proposes a layout. Applying it stays on this canvas until you send it."
                         color: "#8E8E93"
                         font.pixelSize: 12
                     }

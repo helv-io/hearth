@@ -2,7 +2,7 @@
 
 Desktop editor for an iPhone or iPad home screen. Linux, Windows, and macOS.
 
-Plug in one unlocked device. Hearth notices it and reads the layout. Rearrange it, then send it back. Shortcuts stay the items that came from the device. Every read and every send saves a version you can open with nothing plugged in.
+Plug in one unlocked device. Hearth notices it and reads the layout. Rearrange it, then send it back. Every read and every send saves a version you can open with nothing plugged in.
 
 ## Install
 
@@ -10,7 +10,7 @@ Releases: https://github.com/helv-io/hearth/releases/latest
 
 | System | File | Run |
 | --- | --- | --- |
-| Windows | `Hearth-windows.zip` | Unzip and run `Hearth.exe`. Unsigned. |
+| Windows | `Hearth-windows.zip` | Unzip, open the `hearth` folder, and run `hearth.exe`. Unsigned. |
 | macOS | `Hearth-macos.zip` | Open `Hearth.app`. Unsigned. Gatekeeper will warn. |
 | Linux | `hearth.flatpak` | `flatpak install --user hearth.flatpak` |
 
@@ -32,7 +32,9 @@ Tests never open a device. The Makefile sets `QT_QPA_PLATFORM=offscreen`.
 
 ## Connect
 
-Unlock the device and tap Trust. Leave one device plugged in. Hearth checks every two seconds. The first time it sees one device, and the canvas has no unsaved edits, it reads the layout. Refresh looks again and does not replace the canvas. Read from Device and Send to Device are the manual steps.
+Unlock the device and tap Trust. Hearth checks every two seconds. The first time it sees one device, and the canvas has no unsaved edits, it reads the layout. Refresh looks again and does not replace the canvas. Read from Device and Send to Device are the manual steps.
+
+One device at a time. If two are plugged in, Hearth does not guess which one you mean. It tells you to unplug one. Two devices talking at once could send a layout to the wrong phone.
 
 macOS already has the USB service. Windows and Linux do not. Hearth checks at startup. When the service is missing, the sidebar says so and the button installs it.
 
@@ -60,7 +62,7 @@ The sidebar shows the command Hearth is about to run. If the button cannot, past
 
 Model list and file locations: [docs/devices.md](docs/devices.md).
 
-Pages keep empty cells. Drop an icon on an empty cell and the gap stays. Drop it on the side of another icon and only the icons up to the next gap shift. A push closes gaps, because the device's icon list has no empty cells. The confirm step says so when the canvas has gaps.
+Pages keep empty cells. Drop an icon on an empty cell and the gap stays. Drop it on the side of another icon and only the icons up to the next gap shift. Send to Device closes gaps, because the device's icon list has no empty cells. The confirm step says so when the canvas has gaps.
 
 Folders stay packed, nine apps to a page. Two or more pages show that count in a red badge on the folder. One page does not.
 
@@ -68,7 +70,7 @@ Drag the icon to move it. Drag the name under it to slide between pages. Hold an
 
 ## Limits
 
-`setIconState` is ignored on many unsupervised devices, and has been since around iOS 13. A supervised device can accept it. Hearth reads the screen back after a push and restores the previous layout when the device does not keep the edit.
+`setIconState` is ignored on many unsupervised devices, and has been since around iOS 13. A supervised device can accept it. Hearth reads the screen back after a send and restores the previous layout when the device does not keep the edit.
 
 There is no single path that works on every iPhone.
 

@@ -4,7 +4,7 @@ Hearth talks to one iPhone or iPad over USB. Unlock the device and tap Trust. A 
 
 macOS already has the mobile USB service. Linux needs `usbmuxd`. Windows needs Apple Mobile Device Support. Hearth checks which OS it is on and, when the service is missing or stopped, offers to install or start it. The Linux button runs `pkexec` (on the host, when Hearth itself is a Flatpak). The Windows button runs `winget install -e --id Apple.AppleMobileDeviceSupport`, or opens Apple Devices in the Store when winget is not there. The sidebar shows the command.
 
-If two devices are listed, pull and push stop and ask you to leave one plugged in. The serial is not shown.
+Hearth works with one device at a time. If two are plugged in, Read from Device and Send to Device stop and ask you to unplug one. Two devices talking at once can send the layout to the wrong one. The serial number is not shown.
 
 ## Grids
 
@@ -25,7 +25,7 @@ iOS 26 runs on iPhone 11 and later, including iPhone SE (2nd generation). In pro
 
 iPadOS 26 runs on the 2018 iPad Pros (`iPad8,*`) and later, and on iPad Air (3rd), iPad (8th), and iPad mini (5th), which use `iPad11,*` and above. `iPad7,*` and older, including the 7th-generation iPad, are out of support.
 
-An older model still opens, and the sidebar says so. A push may be ignored. An unrecognized future `iPhone*` or `iPad*` model opens on that family's grid. Anything else is shown on the iPhone grid with a warning.
+An older model still opens, and the sidebar says so. A send may be ignored. An unrecognized future `iPhone*` or `iPad*` model opens on that family's grid. Anything else is shown on the iPhone grid with a warning.
 
 ## Versions
 

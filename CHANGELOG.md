@@ -4,6 +4,8 @@
 
 - Hearth checks the OS at startup. macOS needs nothing. Linux offers to install and start `usbmuxd`. Windows offers Apple Mobile Device Support through winget, or opens Apple Devices when winget is missing.
 - A plugged-in device is noticed on its own. Refresh checks again without replacing the canvas. The buttons are Read from Device and Send to Device.
+- Messages and docs use Read from Device and Send to Device. Nothing says pull or push any more. Two devices at once now say to unplug one, and the readme explains why.
+- The readme names the Windows program `hearth.exe`, which is what the build makes.
 
 ## 0.2.1 — 2026-10-15
 
