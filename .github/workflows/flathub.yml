@@ -1,0 +1,80 @@
+name: Flathub check
+
+# Builds packaging/flatpak/io.helv.Hearth.yml the way Flathub will: every source
+# is downloaded first, then the build runs with no network. Then it lints the
+# manifest, the metainfo and the result, and starts the built app once.
+# It runs on cook/ branches and by hand. It does not publish anything.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "cook/**"
+    paths:
+      - "packaging/flatpak/**"
+      - "packaging/linux/**"
+      - "hearth/**"
+      - "pyproject.toml"
+      - ".github/workflows/flathub.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  offline-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.11
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build with no network
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: hearth.flatpak
+          manifest-path: packaging/flatpak/io.helv.Hearth.yml
+          cache-key: flathub-kde-6.11-${{ hashFiles('packaging/flatpak/**') }}
+          upload-artifact: false
+
+      - name: Install the Flathub linter
+        run: |
+          flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install -y --noninteractive flathub org.flatpak.Builder
+
+      - name: Lint
+        run: |
+          lint() { flatpak run --filesystem="$PWD" --command=flatpak-builder-lint org.flatpak.Builder "$@"; }
+          status=0
+          lint manifest packaging/flatpak/io.helv.Hearth.yml > manifest.json || status=1
+          lint appstream packaging/linux/io.helv.Hearth.metainfo.xml > appstream.json || status=1
+          ls -d repo flatpak_app 2>/dev/null || true
+          if [ -d repo ]; then lint repo repo > repo.json || status=1; fi
+          python3 - <<'PY'
+          import json, pathlib, sys
+          # A build on your own machine does not mirror screenshots to Flathub's
+          # server. Flathub's builders do that, so these two are expected here.
+          EXPECTED = {"appstream-external-screenshot-url", "appstream-screenshots-not-mirrored-in-ostree"}
+          bad = False
+          for name in ("manifest", "appstream", "repo"):
+              path = pathlib.Path(f"{name}.json")
+              if not path.is_file() or not path.read_text().strip():
+                  continue
+              try:
+                  data = json.loads(path.read_text())
+              except ValueError:
+                  print(name, path.read_text())
+                  continue
+              errors = [e for e in data.get("errors", []) if e not in EXPECTED]
+              print(f"{name}: errors={errors} warnings={data.get('warnings', [])}")
+              bad = bad or bool(errors)
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: Start the built app
+        run: |
+          flatpak install -y --noninteractive --bundle hearth.flatpak
+          flatpak run --env=QT_QPA_PLATFORM=offscreen --command=hearth io.helv.Hearth --version
+          flatpak run --env=QT_QPA_PLATFORM=offscreen --command=hearth io.helv.Hearth --selftest | tee selftest.txt
+          grep -q '^ok$' selftest.txt
