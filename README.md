@@ -89,3 +89,14 @@ The model proposes a layout. Apply puts it on the canvas. Send to Device is a se
 ## License
 
 GPL-3.0-or-later. The text is in `LICENSE`. pymobiledevice3, which Hearth imports, uses the same license.
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+Windows builds are not signed yet. The application to SignPath Foundation is pending, so Windows SmartScreen still warns about `hearth.exe`.
+
+- Author, reviewer, and approver: [Helvio Pedreschi](https://github.com/Helvio88). The [helv-io owners](https://github.com/orgs/helv-io/people?query=role%3Aowner) approve each signing request.
+- Privacy policy: this program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.
+
+The full policy, with roles, privacy, and uninstall steps, is in [docs/code-signing-policy.md](docs/code-signing-policy.md).
