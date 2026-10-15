@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 — 2026-10-15
+
+Hearth tells you when a newer version is out, and the Mac download is a disk image.
 
 - macOS is a disk image, `Hearth-macos.dmg`, instead of a zip. Open it and drag Hearth onto the Applications shortcut in the window. It is still unsigned, so the first open needs extra clicks, and the readme now lists them for newer and older versions of macOS. Right-click and Open, which used to be enough, no longer works on macOS 15 and newer.
 - The macOS build is for Macs with Apple silicon, M1 and newer. The readme says so.
