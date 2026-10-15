@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+The Linux Flatpak is rebuilt to the rules Flathub asks for.
+
+- The Flatpak no longer asks to run commands on the computer, so the install button is gone from it. If the USB service is not visible, Hearth says so in plain words and folds away the steps to run yourself. Other builds keep the button.
+- The Flatpak builds with no network, from pinned sources, on the KDE 6.11 runtime, with PySide6 from the Flathub base app.
+- The Linux metainfo has screenshots, a developer, links and release pages. The desktop file has keywords.
+- Docs: `docs/flathub.md` says what Flathub needs and what is still open.
+
 ## 0.5.0 — 2026-10-15
 
 Hearth tells you when a newer version is out, and the Mac download is a disk image.

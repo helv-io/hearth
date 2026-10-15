@@ -5,5 +5,5 @@
 - Confirm whether an iPad stores the home screen in portrait order or landscape order, and follow that when it is known.
 - Teach the organizer to put folders in an iPad dock. Dragging can already do that. The proposal schema cannot.
 - Sign the Windows and macOS builds.
-- Publish the Flatpak on Flathub once a build from the tag is green.
+- Publish the Flatpak on Flathub. The manifest is ready for it. `docs/flathub.md` lists what is left, and it needs a person to submit it.
 - Record a home-screen grid inside the icon state if Apple documents empty cells. Until then a push closes gaps on purpose.
