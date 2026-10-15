@@ -29,8 +29,15 @@ Releases: https://github.com/helv-io/hearth/releases/latest
 | System | File | Run |
 | --- | --- | --- |
 | Windows | `Hearth-windows.exe` | Download it and double-click. Nothing to unzip. Unsigned, so Windows warns first: choose More info, then Run anyway. The first start takes a few seconds. |
-| macOS | `Hearth-macos.zip` | Open `Hearth.app`. Unsigned. Gatekeeper will warn. |
+| macOS | `Hearth-macos.dmg` | Open it and drag Hearth onto Applications. Unsigned, so the first open needs a few extra clicks, explained below. |
 | Linux | `hearth.flatpak` | `flatpak install --user hearth.flatpak` |
+
+The first time you open Hearth on a Mac, macOS warns that it cannot check the app, because Hearth is not signed with a paid Apple developer account. Hearth is open source, and you can read what it does. To open it anyway:
+
+- macOS 15 and newer: open Hearth from Applications. The warning only offers Done, so click Done. Then open System Settings, choose Privacy & Security, scroll to the bottom, click Open Anyway next to Hearth, and enter your password. This button appears for about an hour after the warning.
+- macOS 14 and older: right-click Hearth in Applications, choose Open, then choose Open again.
+
+You only do this once.
 
 From source:
 

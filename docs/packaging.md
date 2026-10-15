@@ -6,7 +6,13 @@ The release workflow first creates the GitHub Release. Its notes are the matchin
 
 ## Windows and macOS
 
-`packaging/pyinstaller/hearth.spec` builds both. Windows is a one-file PyInstaller build, so the release asset is `Hearth-windows.exe` with nothing beside it. The program unpacks itself into a temporary folder on every start, which takes a few seconds, and removes the folder when it quits. macOS stays an app bundle, `Hearth.app`, zipped as `Hearth-macos.zip`, because a bundle is already one thing to the user. Neither is signed or notarized. Gatekeeper and SmartScreen will warn. Some antivirus programs distrust one-file builds, because they unpack code at run time, so a false alarm is possible until the file is signed.
+`packaging/pyinstaller/hearth.spec` builds both. Windows is a one-file PyInstaller build, so the release asset is `Hearth-windows.exe` with nothing beside it. The program unpacks itself into a temporary folder on every start, which takes a few seconds, and removes the folder when it quits. macOS stays an app bundle, `Hearth.app`, and is released inside a disk image, `Hearth-macos.dmg`. The bundle is already one thing to the user, and the image gives the familiar drag-to-Applications window. Neither is signed or notarized. Gatekeeper and SmartScreen will warn. Some antivirus programs distrust one-file builds, because they unpack code at run time, so a false alarm is possible until the file is signed.
+
+### The macOS disk image
+
+`packaging/macos/dmg-settings.py` describes the image for [dmgbuild](https://dmgbuild.readthedocs.io), a pure Python tool that needs only the `hdiutil` that ships with macOS. Hearth.app sits on the left, a shortcut to Applications on the right, with dmgbuild's built-in arrow between them, and the volume is named Hearth. dmgbuild writes the window layout itself instead of scripting Finder, which is why it works on a CI runner with no desktop session. `macos.yml` builds the app, runs the built-in check on it, makes the image, mounts it, compares the bundle version with the package version, and runs the check again on the app inside the mounted image. The app version comes from the package, through the spec. The image is plain HFS+ with compression, which every Mac that can run Hearth reads.
+
+The app is unsigned and not notarized, so the first open is blocked by Gatekeeper. Since macOS 15 the old right-click and Open shortcut no longer works. The person has to try once, then use Open Anyway in System Settings under Privacy & Security. The README says so in plain words. If the project ever gets an Apple developer account, sign and notarize the app before `dmgbuild`, then sign and notarize the image, and drop that README section.
 
 The icon on Windows is `hearth/qml/hearth.ico`, set as `icon=` in the spec. The macOS bundle uses the system icon until an `.icns` is added. The window icon inside the app is `hearth/qml/hearth.png` on every platform.
 

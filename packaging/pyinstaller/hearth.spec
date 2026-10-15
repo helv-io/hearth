@@ -254,6 +254,7 @@ else:
             "CFBundleName": "Hearth",
             "CFBundleDisplayName": "Hearth",
             "CFBundleShortVersionString": __version__,
+            "CFBundleVersion": __version__,
             "NSHighResolutionCapable": True,
         },
     )
