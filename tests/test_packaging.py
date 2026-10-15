@@ -102,6 +102,16 @@ class MacBuildsForBothKindsOfMacTests(unittest.TestCase):
         self.assertIn("fail_on_unmatched_files: true", text)
         self.assertNotIn("macos.zip", text)
 
+    def test_the_readme_names_both_dmgs_and_says_how_to_tell_them_apart(self):
+        text = read("README.md")
+        self.assertIn("| `" + DMG + "` |", text)
+        self.assertIn("| `" + INTEL_DMG + "` |", text)
+        self.assertIn("About This Mac", text)
+        self.assertIn("Chip", text)
+        self.assertIn("Processor", text)
+        self.assertNotIn("macos.zip", text)
+        self.assertNotRegex(text, r"(?i)apple silicon only|only for macs with apple silicon")
+
 
 class BundleVersionTests(unittest.TestCase):
     def test_the_bundle_version_comes_from_the_package(self):

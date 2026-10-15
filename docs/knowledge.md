@@ -97,6 +97,6 @@ The organize field wraps to the scroll view's width, with the horizontal bar for
 
 `make test` sets `QT_QPA_PLATFORM=offscreen`. CI has no device. Do not read, send, or restore a device from a test or an unattended session. A send writes the home screen.
 
-Releases are tag `v*`, matching `hearth/__init__.py` and `pyproject.toml`. Windows and macOS are unsigned PyInstaller builds. Linux is the Flatpak `io.helv.Hearth` on the KDE 6.10 runtime, built in the matching `flatpak-github-actions` image. Do not force-move a tag. A failed release gets a new version.
+Releases are tag `v*`, matching `hearth/__init__.py` and `pyproject.toml`. Windows and macOS are unsigned PyInstaller builds. macOS ships two separate DMGs, `Hearth-macos.dmg` (arm64, no tag) and `Hearth-macos-intel.dmg` (x86_64), each built and tested on a native runner, never universal2. Mac dependencies are wheels only, because cryptography 50 has no Intel Mac wheel. Linux is the Flatpak `io.helv.Hearth` on the KDE 6.10 runtime, built in the matching `flatpak-github-actions` image. Do not force-move a tag. A failed release gets a new version.
 
 Do not commit pairing records, lockdown keys, home-screen dumps, or anything from a user state directory.
