@@ -1,14 +1,30 @@
 # Packaging
 
-Push a `v*` tag, such as `v0.3.0`, to run `.github/workflows/release.yml`. The test workflow runs on every push and pull request, with no device attached.
+Push a `v*` tag, such as `v0.4.0`, to run `.github/workflows/release.yml`. The test workflow runs on every push and pull request, with no device attached.
 
 The release workflow first creates the GitHub Release. Its notes are the matching `CHANGELOG.md` section, cut out by `scripts/release-notes.sh`. A tag whose version has no changelog section fails there, before any build starts. The build jobs then attach their files.
 
 ## Windows and macOS
 
-PyInstaller builds an onedir app from `packaging/pyinstaller/hearth.spec`. The Windows zip contains `hearth.exe`. The macOS zip contains `Hearth.app`. Neither is signed or notarized. Gatekeeper and SmartScreen will warn. The icon on Windows is `hearth/qml/hearth.ico`. The macOS bundle uses the system icon until an `.icns` is added. The window icon inside the app is `hearth/qml/hearth.png` on every platform.
+`packaging/pyinstaller/hearth.spec` builds both. Windows is a one-file PyInstaller build, so the release asset is `Hearth-windows.exe` with nothing beside it. The program unpacks itself into a temporary folder on every start, which takes a few seconds, and removes the folder when it quits. macOS stays an app bundle, `Hearth.app`, zipped as `Hearth-macos.zip`, because a bundle is already one thing to the user. Neither is signed or notarized. Gatekeeper and SmartScreen will warn. Some antivirus programs distrust one-file builds, because they unpack code at run time, so a false alarm is possible until the file is signed.
 
-The spec collects PySide6 and pymobiledevice3. QML is unpacked beside the frozen program as `qml/`, which is where `hearth.paths.resource_dir` looks.
+The icon on Windows is `hearth/qml/hearth.ico`, set as `icon=` in the spec. The macOS bundle uses the system icon until an `.icns` is added. The window icon inside the app is `hearth/qml/hearth.png` on every platform.
+
+### What goes in, and what stays out
+
+The spec does not collect whole packages. PyInstaller's own hooks find what Hearth imports, and the spec then cuts what got in anyway:
+
+- `EXCLUDED_MODULES` names Python modules that must not be bundled, such as the Qt web engine, 3D, charts, multimedia and PDF bindings.
+- `DROPPED_PARTS` and `DROPPED_PLUGIN_DIRS` remove Qt libraries and plugins by name. `DROPPED_FILES` removes translations, headers, the Qt Quick Controls styles other than Basic, and the QML modules Hearth never imports.
+- UPX is off. It shrinks the file further, but compressed executables are flagged by antivirus far more often.
+
+Hearth sets the Basic style and imports only Qt Quick, Controls and Layouts. If a QML file starts importing something new, the self-test fails first, so add that module's folder to the kept set.
+
+`qml/` is added as data. `hearth.paths.resource_dir` reads it from `sys._MEIPASS`, the folder a one-file build unpacks into. The self-test proves that on every build.
+
+### The built-in check
+
+`hearth --version file.txt` and `hearth --selftest file.txt` write their answer to the file, because a windowed build has no console. Without the file name they print. The self-test imports the device code, loads `Main.qml`, shows the window, grabs a picture of it and fails if the picture is blank. It reports the size of the unpacked folder too. `.github/workflows/windows.yml` and `macos.yml` build, run the check, and keep the file as an artifact. Windows runs it three times and writes the seconds to the job summary. Both also run on every push to a `cook/` branch.
 
 ## Linux Flatpak
 

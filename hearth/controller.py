@@ -585,6 +585,7 @@ class Controller(QObject):
         dock_count = len(state[0]) if isinstance(state[0], list) else 0
         self._use_screen(screens.from_note(device.load_note(path)), dock_count)
         self._replace_state(state, dirty=True)
+        self._restore_icons(state)
         self._set_status("Opened a saved version. Send to Device writes it.", False)
 
     # --- settings and organizer -----------------------------------------
@@ -789,7 +790,7 @@ class Controller(QObject):
         chosen = screens.for_device(str(meta.get("product") or ""), str(meta.get("deviceClass") or ""))
         self._use_screen(chosen, dock_count)
         self._replace_state(state, dirty=False)
-        device.save_version(state, "pull", self._device_name, self._screen)
+        device.save_version(state, "read", self._device_name, self._screen)
         self._versions = device.list_versions()
         self.versionsChanged.emit()
         count = len(layout.idents(state))
@@ -797,6 +798,18 @@ class Controller(QObject):
         if self._screen.warning:
             message = f"{self._screen.warning} {message}"
         self._set_status(message, False)
+
+    def _restore_icons(self, state):
+        """The icon map starts empty on each launch. Fill it from the cache on disk."""
+        found, _ = device.restore_icons(state)
+        changed = False
+        for ident, url in found.items():
+            if self._icons.get(ident) != url:
+                self._icons[ident] = url
+                changed = True
+        if changed:
+            self._icon_rev += 1
+            self.iconRevChanged.emit()
 
     def _remember_icon(self, ident: str, url: str):
         if not ident or not url or self._icons.get(ident) == url:
@@ -831,12 +844,12 @@ class Controller(QObject):
             self._set_status("Icons: " + ", ".join(parts) + ".", False)
 
     def _on_pushed(self, result: dict):
-        device.save_version(result["previous"], "before-push", self._device_name, self._screen)
+        device.save_version(result["previous"], "before-send", self._device_name, self._screen)
         state = result["state"]
         if isinstance(state, list) and state and isinstance(state[0], list):
             self._use_screen(self._screen, len(state[0]))
         self._replace_state(state, dirty=False)
-        device.save_version(result["state"], "pushed", self._device_name, self._screen)
+        device.save_version(result["state"], "sent", self._device_name, self._screen)
         self._versions = device.list_versions()
         self.versionsChanged.emit()
         self._set_status("The phone is showing this layout.", False)

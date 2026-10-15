@@ -18,7 +18,7 @@ Describe the home screen you want and Hearth shows what it would move. Nothing c
 
 ![The Organize panel with a short request typed in, and a suggestion that puts three apps into one folder, with Apply and Discard buttons.](docs/images/organizer.png)
 
-Every read and every send is saved. Open an older version from the list and the canvas shows it.
+Every read and every send is saved. Open an older version from the list and the canvas shows it, with its icons.
 
 ![The list of saved versions on the left, and an earlier home screen open on the canvas.](docs/images/versions.png)
 
@@ -28,7 +28,7 @@ Releases: https://github.com/helv-io/hearth/releases/latest
 
 | System | File | Run |
 | --- | --- | --- |
-| Windows | `Hearth-windows.zip` | Unzip, open the `hearth` folder, and run `hearth.exe`. Unsigned. |
+| Windows | `Hearth-windows.exe` | Download it and double-click. Nothing to unzip. Unsigned, so Windows warns first: choose More info, then Run anyway. The first start takes a few seconds. |
 | macOS | `Hearth-macos.zip` | Open `Hearth.app`. Unsigned. Gatekeeper will warn. |
 | Linux | `hearth.flatpak` | `flatpak install --user hearth.flatpak` |
 

@@ -79,7 +79,9 @@ The add-page pill is as tall as the chassis, not the page label, and it lives in
 
 ## Versions
 
-Every read and every send writes a plist plus a JSON note. The note holds the reason, the device field, the time, and the screen (family, columns, rows, dock, product). The screen is not part of the plist. `layout_key` ignores the note and also ignores icon dates and app versions. Neighboring versions with the same key collapse to the earliest. A layout that comes back after a different one is a new run and stays. Collapse runs when the list is rebuilt, so open, read, and send all pass through it.
+Every read and every send writes a plist plus a JSON note. The note holds the reason (`read`, `sent`, `before-send`; `pull`, `pushed` and `before-push` from 0.3.0 and earlier still list and open, and `device.version_name` maps both to the on-screen words), the device field, the time, and the screen (family, columns, rows, dock, product). The screen is not part of the plist. `layout_key` ignores the note and also ignores icon dates and app versions. Neighboring versions with the same key collapse to the earliest. A layout that comes back after a different one is a new run and stays. Collapse runs when the list is rebuilt, so open, read, and send all pass through it.
+
+The icon map in the controller starts empty on every launch. `loadVersion` fills it from the icon cache on disk (`device.restore_icons`), so a version opens with its art and no device attached. An icon with no cached art falls back to the letter tile.
 
 Linux uses the XDG directories. If a `hearth` directory is missing and an `iphone-layout` directory is already there, keep using that directory. Do not create a second one. On macOS the state directory already ends in `versions`, and `version_dir()` adds another. Leave that alone.
 

@@ -13,7 +13,7 @@ from hearth.layout import ident, is_widget, kind_of, label, monogram
 from hearth.paths import version_dir
 from hearth.screens import Screen, note_fields
 
-# Present on a pulled icon, and not part of where anything sits.
+# Present on an icon read from the device, and not part of where anything sits.
 _NOT_LAYOUT = frozenset({
     "iconModDate",
     "bundleVersion",
@@ -65,7 +65,7 @@ def _layout_body(value):
 def collapse_versions(root: Path | None = None) -> None:
     """Drop a version when it matches the neighbor kept before it. The earliest stays.
 
-    Open and a new pull both rebuild the list, so both pass through here.
+    Open and a new read both rebuild the list, so both pass through here.
     A layout that comes back after a different one is a new run and stays.
     """
     folder = version_dir() if root is None else root
@@ -87,6 +87,22 @@ def collapse_versions(root: Path | None = None) -> None:
         kept = key
 
 
+# What each saved version is called in the list. Versions saved by 0.3.0 and
+# earlier carry the old names in their file name, so those stay readable.
+_VERSION_NAMES = {
+    "read": "Read from Device",
+    "pull": "Read from Device",
+    "sent": "Sent to Device",
+    "pushed": "Sent to Device",
+    "before-send": "Before send",
+    "before-push": "Before send",
+}
+
+
+def version_name(reason: str) -> str:
+    return _VERSION_NAMES.get(reason, reason.replace("-", " "))
+
+
 def list_versions() -> list[dict]:
     collapse_versions()
     rows = []
@@ -95,7 +111,7 @@ def list_versions() -> list[dict]:
         reason = path.stem.split("-", 2)[-1] if path.stem.count("-") >= 2 else "saved"
         rows.append({
             "path": str(path),
-            "label": stamp.strftime("%b %d %H:%M") + "  " + reason.replace("-", " "),
+            "label": stamp.strftime("%b %d %H:%M") + "  " + version_name(reason),
         })
     return rows[:40]
 
@@ -316,6 +332,22 @@ def _icon_jobs(state) -> list[dict]:
                     "candidates": candidates,
                 })
     return jobs
+
+
+def restore_icons(state) -> tuple[dict[str, str], list[dict]]:
+    """Icons already on disk for a layout opened with no device attached.
+
+    Returns the artwork found by identifier, and the jobs that have none.
+    """
+    found: dict[str, str] = {}
+    missing: list[dict] = []
+    for job in _icon_jobs(state):
+        url = icons.cached(job["ident"])
+        if url:
+            found[job["ident"]] = url
+        else:
+            missing.append(job)
+    return found, missing
 
 
 def _connection_dead(exc: BaseException) -> bool:
