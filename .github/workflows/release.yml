@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.*"
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  windows:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e . pyinstaller
+      - name: Build
+        run: pyinstaller packaging/pyinstaller/hearth.spec
+      - name: Pack
+        run: |
+          Compress-Archive -Path dist/hearth -DestinationPath Hearth-windows.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: Hearth-windows.zip
+          generate_release_notes: true
+
+  macos:
+    needs: test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e . pyinstaller
+      - name: Build
+        run: pyinstaller packaging/pyinstaller/hearth.spec
+      - name: Pack
+        run: ditto -c -k --keepParent dist/Hearth.app Hearth-macos.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: Hearth-macos.zip
+
+  flatpak:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: hearth.flatpak
+          manifest-path: packaging/flatpak/io.helv.Hearth.yml
+          cache-key: flatpak-kde-6.11
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: hearth.flatpak

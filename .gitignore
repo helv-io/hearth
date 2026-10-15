@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.flatpak-builder/
+.cache/
+repo/
+*.flatpak
+*.dmg
+*.AppImage
+.DS_Store
+Thumbs.db

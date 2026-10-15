@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.helv.Hearth</id>
+  <name>Hearth</name>
+  <summary>Edit an iPhone or iPad home screen</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <description>
+    <p>Pull a home screen over USB, rearrange pages, folders, widgets, and the dock, then push it back.</p>
+    <p>Works with a current iPhone or iPad. A push is read back, and the previous layout is restored when the device does not keep the edit.</p>
+  </description>
+  <launchable type="desktop-id">io.helv.Hearth.desktop</launchable>
+  <url type="homepage">https://github.com/helv-io/hearth</url>
+  <url type="bugtracker">https://github.com/helv-io/hearth/issues</url>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.2.0" date="2026-10-15"/>
+  </releases>
+</component>
