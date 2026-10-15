@@ -2,6 +2,8 @@
 
 Push a `v*` tag, such as `v0.3.0`, to run `.github/workflows/release.yml`. The test workflow runs on every push and pull request, with no device attached.
 
+The release workflow first creates the GitHub Release. Its notes are the matching `CHANGELOG.md` section, cut out by `scripts/release-notes.sh`. A tag whose version has no changelog section fails there, before any build starts. The build jobs then attach their files.
+
 ## Windows and macOS
 
 PyInstaller builds an onedir app from `packaging/pyinstaller/hearth.spec`. The Windows zip contains `hearth.exe`. The macOS zip contains `Hearth.app`. Neither is signed or notarized. Gatekeeper and SmartScreen will warn. The icon on Windows is `hearth/qml/hearth.ico`. The macOS bundle uses the system icon until an `.icns` is added. The window icon inside the app is `hearth/qml/hearth.png` on every platform.

@@ -26,7 +26,7 @@ Do not pull, push, or restore a device from a test or an agent session unless th
 
 ## Releases
 
-`.github/workflows/ci.yml` runs the tests. `.github/workflows/release.yml` builds Windows, macOS, and a Flatpak when a `v*` tag is pushed. The tag should match the version, like `v0.3.0`. Windows and macOS artifacts are unsigned. Do not commit pairing records, lockdown keys, home-screen dumps, or anything from a user state directory.
+`.github/workflows/ci.yml` runs the tests. `.github/workflows/release.yml` builds Windows, macOS, and a Flatpak when a `v*` tag is pushed. The tag should match the version, like `v0.3.0`. The release notes are the `CHANGELOG.md` section for that version. Windows and macOS artifacts are unsigned. Do not commit pairing records, lockdown keys, home-screen dumps, or anything from a user state directory.
 
 ## Docs
 

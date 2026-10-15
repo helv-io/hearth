@@ -11,6 +11,7 @@ Hearth notices a device, sets up the USB service for you, and shows folder pages
 - Two devices at once say to unplug one, and the readme explains why.
 - The readme names the Windows program `hearth.exe`, which is what the build makes.
 - On Windows, the driver install and the service checks no longer flash console windows.
+- The GitHub Release notes come from this changelog.
 - Tests and builds: CI runs on every push to master. The macOS app takes its version from the package. The version test checks the package, `pyproject.toml`, the Linux metainfo, and this changelog.
 
 ## 0.2.1 — 2026-10-15

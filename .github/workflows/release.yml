@@ -12,8 +12,25 @@ jobs:
   test:
     uses: ./.github/workflows/ci.yml
 
-  windows:
+  notes:
     needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Release notes from the changelog
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          {
+            scripts/release-notes.sh "$version"
+            echo
+            echo "Install steps are in the [readme](https://github.com/${GITHUB_REPOSITORY}#install). The Windows and macOS builds are unsigned."
+          } > release-notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+
+  windows:
+    needs: [test, notes]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,10 +47,9 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: Hearth-windows.zip
-          generate_release_notes: true
 
   macos:
-    needs: test
+    needs: [test, notes]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +67,7 @@ jobs:
           files: Hearth-macos.zip
 
   flatpak:
-    needs: test
+    needs: [test, notes]
     runs-on: ubuntu-latest
     timeout-minutes: 120
     container:
