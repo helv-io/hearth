@@ -28,6 +28,7 @@ ApplicationWindow {
         modelBox.editText = controller.model
         keyField.text = ""
         forgetKey.checked = false
+        updatesBox.checked = controller.checkUpdates
         for (let i = 0; i < providerBox.count; i++) {
             if (providerBox.valueAt(i) === controller.provider) {
                 providerBox.currentIndex = i
@@ -855,6 +856,21 @@ ApplicationWindow {
         }
     }
 
+    UpdateNotice {
+        id: updateNotice
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: 16
+        anchors.bottomMargin: 32 + 16
+        z: 19
+        shown: controller.updateAvailable
+        version: controller.updateVersion
+        current: controller.appVersion
+        onDownload: controller.openUpdatePage()
+        onLater: controller.dismissUpdate()
+        onSkip: controller.skipUpdate()
+    }
+
     Rectangle {
         visible: settingsOpen
         anchors.fill: parent
@@ -998,6 +1014,26 @@ ApplicationWindow {
                         leftPadding: 10
                         verticalAlignment: Text.AlignVCenter
                     }
+                }
+                Text { text: "Updates"; color: "white"; font.pixelSize: 18; font.bold: true; topPadding: 8 }
+                CheckBox {
+                    id: updatesBox
+                    objectName: "updatesBox"
+                    text: "Check for updates on startup"
+                    onToggled: controller.setCheckUpdates(checked)
+                    contentItem: Text {
+                        text: updatesBox.text
+                        color: "#C7C7CC"
+                        leftPadding: updatesBox.indicator.width + 8
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+                Text {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: "Hearth asks GitHub once a day whether a newer version exists. Nothing else is sent."
+                    color: "#6E6E73"
+                    font.pixelSize: 11
                 }
                 Row {
                     spacing: 8

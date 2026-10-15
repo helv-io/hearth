@@ -1,7 +1,8 @@
 name: macOS build
 
-# Builds Hearth.app, starts it once to prove it works, and keeps it as the
-# Hearth-macos.zip artifact. The release workflow calls this one.
+# Builds Hearth.app, starts it once to prove it works, puts it in a disk image
+# with an Applications shortcut, opens that image and starts the app from it,
+# and keeps it as the Hearth-macos.dmg artifact. The release workflow calls this one.
 
 on:
   workflow_call:
@@ -34,12 +35,32 @@ jobs:
           cat "$RUNNER_TEMP/version.txt"
           time dist/Hearth.app/Contents/MacOS/hearth --selftest "$RUNNER_TEMP/selftest.txt"
           cat "$RUNNER_TEMP/selftest.txt"
-      - name: Pack
-        run: ditto -c -k --keepParent dist/Hearth.app Hearth-macos.zip
-      - run: ls -l Hearth-macos.zip
+      - name: Make the disk image
+        run: |
+          file dist/Hearth.app/Contents/MacOS/hearth
+          pip install "dmgbuild>=1.6,<2"
+          dmgbuild -s packaging/macos/dmg-settings.py -D app=dist/Hearth.app Hearth Hearth-macos.dmg
+          ls -l Hearth-macos.dmg
+      - name: Open the disk image and start the app from it
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          hdiutil attach Hearth-macos.dmg -nobrowse -readonly
+          trap 'hdiutil detach /Volumes/Hearth' EXIT
+          ls -la /Volumes/Hearth
+          test -d /Volumes/Hearth/Hearth.app
+          test "$(readlink /Volumes/Hearth/Applications)" = /Applications
+          test -f /Volumes/Hearth/.DS_Store
+          expected="$(sed -n 's/^hearth //p' "$RUNNER_TEMP/version.txt")"
+          shown="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Volumes/Hearth/Hearth.app/Contents/Info.plist)"
+          echo "package $expected, app bundle $shown"
+          test -n "$expected" && test "$expected" = "$shown"
+          /Volumes/Hearth/Hearth.app/Contents/MacOS/hearth --selftest "$RUNNER_TEMP/selftest-dmg.txt"
+          cat "$RUNNER_TEMP/selftest-dmg.txt"
+          grep -qx ok "$RUNNER_TEMP/selftest-dmg.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: Hearth-macos.zip
-          path: Hearth-macos.zip
+          name: Hearth-macos.dmg
+          path: Hearth-macos.dmg
           if-no-files-found: error
           compression-level: 0

@@ -6,7 +6,13 @@ The release workflow first creates the GitHub Release. Its notes are the matchin
 
 ## Windows and macOS
 
-`packaging/pyinstaller/hearth.spec` builds both. Windows is a one-file PyInstaller build, so the release asset is `Hearth-windows.exe` with nothing beside it. The program unpacks itself into a temporary folder on every start, which takes a few seconds, and removes the folder when it quits. macOS stays an app bundle, `Hearth.app`, zipped as `Hearth-macos.zip`, because a bundle is already one thing to the user. Neither is signed or notarized. Gatekeeper and SmartScreen will warn. Some antivirus programs distrust one-file builds, because they unpack code at run time, so a false alarm is possible until the file is signed.
+`packaging/pyinstaller/hearth.spec` builds both. Windows is a one-file PyInstaller build, so the release asset is `Hearth-windows.exe` with nothing beside it. The program unpacks itself into a temporary folder on every start, which takes a few seconds, and removes the folder when it quits. macOS stays an app bundle, `Hearth.app`, and is released inside a disk image, `Hearth-macos.dmg`. The bundle is already one thing to the user, and the image gives the familiar drag-to-Applications window. Neither is signed or notarized. Gatekeeper and SmartScreen will warn. Some antivirus programs distrust one-file builds, because they unpack code at run time, so a false alarm is possible until the file is signed.
+
+### The macOS disk image
+
+`packaging/macos/dmg-settings.py` describes the image for [dmgbuild](https://dmgbuild.readthedocs.io), a pure Python tool that needs only the `hdiutil` that ships with macOS. Hearth.app sits on the left, a shortcut to Applications on the right, with dmgbuild's built-in arrow between them, and the volume is named Hearth. dmgbuild writes the window layout itself instead of scripting Finder, which is why it works on a CI runner with no desktop session. `macos.yml` builds the app, runs the built-in check on it, makes the image, mounts it, compares the bundle version with the package version, and runs the check again on the app inside the mounted image. The app version comes from the package, through the spec. The image is plain HFS+ with compression, which every Mac that can run Hearth reads.
+
+The app is unsigned and not notarized, so the first open is blocked by Gatekeeper. Since macOS 15 the old right-click and Open shortcut no longer works. The person has to try once, then use Open Anyway in System Settings under Privacy & Security. The README says so in plain words. If the project ever gets an Apple developer account, sign and notarize the app before `dmgbuild`, then sign and notarize the image, and drop that README section.
 
 The icon on Windows is `hearth/qml/hearth.ico`, set as `icon=` in the spec. The macOS bundle uses the system icon until an `.icns` is added. The window icon inside the app is `hearth/qml/hearth.png` on every platform.
 
@@ -40,6 +46,16 @@ flatpak run io.helv.Hearth
 The host still needs `usbmuxd`. The sandbox does not run its own copy. The in-app button installs it on the host when it is missing.
 
 If Flathub retires the 6.10 runtime, bump `runtime-version`, the container image tag, and the cache key together.
+
+## Update check
+
+`hearth/updates.py` is the whole feature. `REPO` is the one place that names the project, and the tag list URL and the download page are built from it. A test checks it against the Homepage in `pyproject.toml`.
+
+At startup `Controller.startUpdateCheck` runs `updates.offer` on a background thread. `offer` reads `updates.json` in the config directory. That file holds `enabled`, `last_check`, `latest` and `skipped`. It is separate from `settings.json` on purpose, because saving the model settings rewrites that file. When the saved answer is under a day old, no request is made and the saved `latest` is used, so a person who pressed Not now sees the card again at the next start without a request. Otherwise one unauthenticated request goes to `https://api.github.com/repos/helv-io/hearth/tags?per_page=100` with a 5 second timeout. The newest `vX.Y.Z` tag that is not a pre-release wins, compared by number, not by text, so `v0.10.0` beats `v0.9.0`. Other tags are ignored.
+
+A rate limit or any odd answer is remembered as a check, so Hearth waits a day. A missing connection is not, so it asks again at the next start. Nothing is ever shown for these. A build with no readable version, `0.0.0`, or a `dev` marker never asks. `--version` and `--selftest` never ask, and a test proves the self-test makes no network call.
+
+GitHub does not list tags in version order, and returns 100 at most. That is plenty while tags follow `vX.Y.Z`. If the project ever has more than 100 tags, read `releases/latest` instead.
 
 ## Local check
 

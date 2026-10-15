@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 — 2026-10-15
+
+Hearth tells you when a newer version is out, and the Mac download is a disk image.
+
+- macOS is a disk image, `Hearth-macos.dmg`, instead of a zip. Open it and drag Hearth onto the Applications shortcut in the window. It is still unsigned, so the first open needs extra clicks, and the readme now lists them for newer and older versions of macOS. Right-click and Open, which used to be enough, no longer works on macOS 15 and newer.
+- The macOS build is for Macs with Apple silicon, M1 and newer. The readme says so.
+- Every macOS build opens its own disk image and starts the app from inside it before anything is published.
+- Hearth checks at startup whether a newer version exists. A small card says "Hearth X.Y.Z is available" with Open download page, Not now and Skip this version. It asks GitHub at most once a day and stays quiet when you are offline. Settings has a Check for updates on startup box, on by default. That request is the only thing Hearth sends on its own, and it carries nothing about you or your device.
+
 ## 0.4.0 — 2026-10-15
 
 Windows is one small file, and the downloads are about a fifth of their old size.
