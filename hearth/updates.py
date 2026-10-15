@@ -8,13 +8,13 @@ from __future__ import annotations
 
 import json
 import re
-import ssl
 import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
 from hearth import __version__
+from hearth.net import secure_context
 from hearth.paths import config_dir
 
 # The one place that names the project. Everything below is built from it.
@@ -149,20 +149,6 @@ class Unreachable(Exception):
     """No answer at all, such as offline. Worth asking again soon."""
 
 
-def _secure_context() -> ssl.SSLContext:
-    """Trust the same certificate list everywhere.
-
-    A Python bundled into an app on macOS may not find the system list, which
-    would make every check fail. certifi comes with pymobiledevice3 (through requests).
-    """
-    try:
-        import certifi
-
-        return ssl.create_default_context(cafile=certifi.where())
-    except Exception:
-        return ssl.create_default_context()
-
-
 def fetch_tags() -> list[str]:
     request = urllib.request.Request(
         TAGS_URL,
@@ -172,7 +158,7 @@ def fetch_tags() -> list[str]:
         },
     )
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS, context=_secure_context()) as reply:
+        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS, context=secure_context()) as reply:
             data = json.loads(reply.read(2_000_000).decode("utf-8"))
     except urllib.error.HTTPError as error:
         raise ValueError(f"GitHub answered {error.code}") from error

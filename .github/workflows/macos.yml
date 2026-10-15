@@ -1,8 +1,18 @@
 name: macOS build
 
-# Builds Hearth.app, starts it once to prove it works, puts it in a disk image
-# with an Applications shortcut, opens that image and starts the app from it,
-# and keeps it as the Hearth-macos.dmg artifact. The release workflow calls this one.
+# Builds Hearth.app twice, once for each kind of Mac, each on a runner of its own
+# kind. Apple silicon (M1 and newer) gives Hearth-macos.dmg. Intel gives
+# Hearth-macos-intel.dmg. They are two plain builds, not one universal app.
+#
+# Each one starts the app to prove it works, puts it in a disk image with an
+# Applications shortcut, opens that image and starts the app from it, and keeps
+# the image as an artifact. The release workflow calls this one.
+#
+# Runner labels, from GitHub's runner-images list:
+#   macos-latest       Apple silicon, follows the newest macOS GitHub offers.
+#   macos-15-intel     Intel. GitHub's last Intel image, offered until August 2027.
+#                      macos-13 is gone. When this label goes, the Intel build must
+#                      move elsewhere or stop. docs/packaging.md says so too.
 
 on:
   workflow_call:
@@ -16,51 +26,131 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS Apple silicon
+            runner: macos-latest
+            arch: arm64
+            dmg: Hearth-macos.dmg
+          - name: macOS Intel
+            runner: macos-15-intel
+            arch: x86_64
+            dmg: Hearth-macos-intel.dmg
+    env:
+      ARCH: ${{ matrix.arch }}
+      DMG: ${{ matrix.dmg }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Check that this runner is the kind of Mac we are building for
+        run: |
+          echo "machine $(uname -m), python $(python -c 'import platform; print(platform.machine())')"
+          sysctl -n sysctl.proc_translated 2>/dev/null || true
+          test "$(uname -m)" = "$ARCH"
+          test "$(python -c 'import platform; print(platform.machine())')" = "$ARCH"
+          # Rosetta would print 1 here. The build and the check must run natively.
+          test "$(sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)" = 0
+      # Wheels only for everything Hearth depends on. cryptography 50 has no Intel Mac
+      # wheel, so pip would compile it, which takes minutes and links the runner's older
+      # OpenSSL instead of carrying its own. With wheels only, pip picks cryptography 48
+      # on Intel, which has one. If a dependency ever has no wheel, this step fails here
+      # and says which one.
       - name: Install
-        run: pip install -e . pyinstaller
+        run: |
+          pip install --only-binary=:all: "PySide6>=6.6" "pymobiledevice3>=4.0" pyinstaller
+          pip install --no-deps -e .
+          pip list 2>/dev/null | grep -i -E "^(pyside6|pymobiledevice3|cryptography|pyinstaller) "
       - name: Build
         run: pyinstaller packaging/pyinstaller/hearth.spec
+      - name: Check that the app is built for this kind of Mac
+        run: |
+          du -sh dist/Hearth.app
+          file dist/Hearth.app/Contents/MacOS/hearth
+          test "$(lipo -archs dist/Hearth.app/Contents/MacOS/hearth)" = "$ARCH"
+          # Every program and library inside must carry this kind of Mac. A leftover
+          # of the other kind next to it is only reported.
+          missing=0 total=0 extra=0
+          while IFS= read -r -d '' item; do
+            file "$item" | grep -q 'Mach-O' || continue
+            total=$((total + 1))
+            archs="$(lipo -archs "$item" 2>/dev/null || true)"
+            case " $archs " in
+              *" $ARCH "*) ;;
+              *) echo "no $ARCH in: $item ($archs)"; missing=$((missing + 1)) ;;
+            esac
+            test "$archs" = "$ARCH" || extra=$((extra + 1))
+          done < <(find dist/Hearth.app -type f -print0)
+          echo "$total programs and libraries, $missing without $ARCH, $extra with more than $ARCH"
+          test "$total" -gt 0
+          test "$missing" -eq 0
+          # The oldest macOS this build asks for is the highest minimum among its parts.
+          while IFS= read -r -d '' item; do
+            file "$item" | grep -q 'Mach-O' || continue
+            minimum="$(vtool -arch "$ARCH" -show-build "$item" 2>/dev/null | awk '/minos/ {print $2}' | head -1)"
+            echo "${minimum:-0} ${item#dist/Hearth.app/}"
+          done < <(find dist/Hearth.app -type f -print0) | sort -V > "$RUNNER_TEMP/minimums.txt"
+          echo "highest minimum macOS, by part:"
+          tail -8 "$RUNNER_TEMP/minimums.txt"
+          floor="$(tail -1 "$RUNNER_TEMP/minimums.txt" | cut -d' ' -f1)"
+          echo "needs macOS $floor or newer"
+          {
+            echo "### $DMG"
+            echo "- built for $ARCH on $(sw_vers -productName) $(sw_vers -productVersion)"
+            echo "- needs macOS $floor or newer"
+            echo "- $total programs and libraries, $extra with more than $ARCH"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Start it and check the window
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          du -sh dist/Hearth.app
           dist/Hearth.app/Contents/MacOS/hearth --version "$RUNNER_TEMP/version.txt"
           cat "$RUNNER_TEMP/version.txt"
-          time dist/Hearth.app/Contents/MacOS/hearth --selftest "$RUNNER_TEMP/selftest.txt"
-          cat "$RUNNER_TEMP/selftest.txt"
+          # Show what the check found even when it fails, then fail.
+          started=$SECONDS
+          status=0
+          dist/Hearth.app/Contents/MacOS/hearth --selftest "$RUNNER_TEMP/selftest.txt" || status=$?
+          echo "the check took $((SECONDS - started)) seconds and exited with $status"
+          cat "$RUNNER_TEMP/selftest.txt" || true
+          test "$status" -eq 0
+          grep -qx "machine $ARCH" "$RUNNER_TEMP/selftest.txt"
+          grep -qx ok "$RUNNER_TEMP/selftest.txt"
       - name: Make the disk image
         run: |
-          file dist/Hearth.app/Contents/MacOS/hearth
           pip install "dmgbuild>=1.6,<2"
-          dmgbuild -s packaging/macos/dmg-settings.py -D app=dist/Hearth.app Hearth Hearth-macos.dmg
-          ls -l Hearth-macos.dmg
+          dmgbuild -s packaging/macos/dmg-settings.py -D app=dist/Hearth.app Hearth "$DMG"
+          ls -l "$DMG"
+          echo "- $DMG is $(du -h "$DMG" | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
       - name: Open the disk image and start the app from it
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          hdiutil attach Hearth-macos.dmg -nobrowse -readonly
+          hdiutil attach "$DMG" -nobrowse -readonly
           trap 'hdiutil detach /Volumes/Hearth' EXIT
           ls -la /Volumes/Hearth
           test -d /Volumes/Hearth/Hearth.app
           test "$(readlink /Volumes/Hearth/Applications)" = /Applications
           test -f /Volumes/Hearth/.DS_Store
+          test "$(lipo -archs /Volumes/Hearth/Hearth.app/Contents/MacOS/hearth)" = "$ARCH"
           expected="$(sed -n 's/^hearth //p' "$RUNNER_TEMP/version.txt")"
           shown="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Volumes/Hearth/Hearth.app/Contents/Info.plist)"
           echo "package $expected, app bundle $shown"
           test -n "$expected" && test "$expected" = "$shown"
-          /Volumes/Hearth/Hearth.app/Contents/MacOS/hearth --selftest "$RUNNER_TEMP/selftest-dmg.txt"
-          cat "$RUNNER_TEMP/selftest-dmg.txt"
+          status=0
+          /Volumes/Hearth/Hearth.app/Contents/MacOS/hearth --selftest "$RUNNER_TEMP/selftest-dmg.txt" || status=$?
+          echo "the check exited with $status"
+          cat "$RUNNER_TEMP/selftest-dmg.txt" || true
+          test "$status" -eq 0
+          grep -qx "machine $ARCH" "$RUNNER_TEMP/selftest-dmg.txt"
           grep -qx ok "$RUNNER_TEMP/selftest-dmg.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: Hearth-macos.dmg
-          path: Hearth-macos.dmg
+          name: ${{ matrix.dmg }}
+          path: ${{ matrix.dmg }}
           if-no-files-found: error
           compression-level: 0

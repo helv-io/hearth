@@ -41,4 +41,5 @@ class SelfTestTests(unittest.TestCase):
         self.assertEqual(code, 0, text)
         self.assertIn("device code loaded", text)
         self.assertIn("windows 1", text)
+        self.assertRegex(text, r"certificates \d+")
         self.assertTrue(text.strip().endswith("ok"))

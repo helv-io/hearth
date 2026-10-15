@@ -11,6 +11,7 @@ from urllib.request import Request, urlopen
 
 from hearth.grok_sso import CLI_HEADERS, FALLBACK_BASE
 from hearth.layout import active_screen, catalog, current_outline, proposal_from_text
+from hearth.net import secure_context
 
 
 def _system() -> str:
@@ -196,7 +197,7 @@ def _request(base_url: str, key: str, path: str, body: dict | None, oauth: bool 
         headers.update(CLI_HEADERS)
     request = Request(url, data=data, headers=headers, method="GET" if data is None else "POST")
     try:
-        with urlopen(request, timeout=120) as response:
+        with urlopen(request, timeout=120, context=secure_context()) as response:
             return json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:280]

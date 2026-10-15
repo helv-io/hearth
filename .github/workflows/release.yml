@@ -23,7 +23,7 @@ jobs:
           {
             scripts/release-notes.sh "$version"
             echo
-            echo "Install steps are in the [readme](https://github.com/${GITHUB_REPOSITORY}#install). The Windows and macOS builds are unsigned, so both warn the first time you open them. The readme says what to click."
+            echo "Install steps are in the [readme](https://github.com/${GITHUB_REPOSITORY}#install). The Windows and macOS builds are unsigned, so both warn the first time you open them. The readme says what to click and which Mac file is yours."
           } > release-notes.md
       - uses: softprops/action-gh-release@v2
         with:
@@ -52,12 +52,18 @@ jobs:
     needs: macos
     runs-on: ubuntu-latest
     steps:
+      # Both disk images: Hearth-macos.dmg for Apple silicon, Hearth-macos-intel.dmg for Intel.
       - uses: actions/download-artifact@v4
         with:
-          name: Hearth-macos.dmg
+          pattern: Hearth-macos*.dmg
+          merge-multiple: true
+      - run: ls -l Hearth-macos.dmg Hearth-macos-intel.dmg
       - uses: softprops/action-gh-release@v2
         with:
-          files: Hearth-macos.dmg
+          fail_on_unmatched_files: true
+          files: |
+            Hearth-macos.dmg
+            Hearth-macos-intel.dmg
 
   flatpak:
     needs: [test, notes]

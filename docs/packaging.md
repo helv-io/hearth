@@ -6,11 +6,30 @@ The release workflow first creates the GitHub Release. Its notes are the matchin
 
 ## Windows and macOS
 
-`packaging/pyinstaller/hearth.spec` builds both. Windows is a one-file PyInstaller build, so the release asset is `Hearth-windows.exe` with nothing beside it. The program unpacks itself into a temporary folder on every start, which takes a few seconds, and removes the folder when it quits. macOS stays an app bundle, `Hearth.app`, and is released inside a disk image, `Hearth-macos.dmg`. The bundle is already one thing to the user, and the image gives the familiar drag-to-Applications window. Neither is signed or notarized. Gatekeeper and SmartScreen will warn. Some antivirus programs distrust one-file builds, because they unpack code at run time, so a false alarm is possible until the file is signed.
+`packaging/pyinstaller/hearth.spec` builds both. Windows is a one-file PyInstaller build, so the release asset is `Hearth-windows.exe` with nothing beside it. The program unpacks itself into a temporary folder on every start, which takes a few seconds, and removes the folder when it quits. macOS stays an app bundle, `Hearth.app`, and is released inside a disk image. There are two, one per kind of Mac: `Hearth-macos.dmg` for Apple silicon (M1 and newer) and `Hearth-macos-intel.dmg` for Intel. The bundle is already one thing to the user, and the image gives the familiar drag-to-Applications window. Neither is signed or notarized. Gatekeeper and SmartScreen will warn. Some antivirus programs distrust one-file builds, because they unpack code at run time, so a false alarm is possible until the file is signed.
+
+### Two Mac builds
+
+`macos.yml` is a two-row matrix. Each row builds on a runner of its own kind, so the app and the self-test run natively, with no Rosetta:
+
+| File | Runner | Architecture |
+| --- | --- | --- |
+| `Hearth-macos.dmg` | `macos-latest` | arm64 |
+| `Hearth-macos-intel.dmg` | `macos-15-intel` | x86_64 |
+
+They are two plain builds, not one universal2 app. A universal app would have to merge Qt and PySide6 libraries and would be about twice the size for everyone. The Apple silicon file keeps the plain name. Only the Intel file carries a tag.
+
+Each row checks, before and after the disk image: that the runner is the expected kind and not translated, that the app's main program and every program and library inside carry that architecture, that the self-test reports the same machine, and that the bundle version matches the package. The job summary lists the oldest macOS the build asks for and which parts set it.
+
+**Intel runners end in August 2027.** GitHub's last Intel Mac image is macOS 15, label `macos-15-intel`. `macos-13` was retired in December 2025. Check the label against the [runner images list](https://github.com/actions/runner-images#available-images) before each release. When GitHub drops Intel, the Intel row has to move to something else, such as a self-hosted Intel Mac, or stop, and the README and release notes must say so.
+
+**Dependencies are installed as wheels only.** `cryptography` 50 has no Intel Mac wheel. Without the wheels-only rule, pip compiled it on the Intel runner, which took minutes, and it linked the runner's older OpenSSL. The app then failed to start with a missing `SSL_get0_group_name` symbol. With wheels only, pip picks `cryptography` 48 on Intel, which has a universal2 wheel with OpenSSL built in. The step fails with the package name if some dependency ever has no wheel for a platform.
+
+**Oldest macOS.** Qt 6.12 documents macOS 14.4 as its minimum, and the README says so. The PySide6 6.12 binding libraries are marked as built for macOS 26 in their headers, although the wheel tag says 14. This has not been tried on a real Mac older than 26.
 
 ### The macOS disk image
 
-`packaging/macos/dmg-settings.py` describes the image for [dmgbuild](https://dmgbuild.readthedocs.io), a pure Python tool that needs only the `hdiutil` that ships with macOS. Hearth.app sits on the left, a shortcut to Applications on the right, with dmgbuild's built-in arrow between them, and the volume is named Hearth. dmgbuild writes the window layout itself instead of scripting Finder, which is why it works on a CI runner with no desktop session. `macos.yml` builds the app, runs the built-in check on it, makes the image, mounts it, compares the bundle version with the package version, and runs the check again on the app inside the mounted image. The app version comes from the package, through the spec. The image is plain HFS+ with compression, which every Mac that can run Hearth reads.
+`packaging/macos/dmg-settings.py` describes the image for [dmgbuild](https://dmgbuild.readthedocs.io), a pure Python tool that needs only the `hdiutil` that ships with macOS. Hearth.app sits on the left, a shortcut to Applications on the right, with dmgbuild's built-in arrow between them, and the volume is named Hearth. dmgbuild writes the window layout itself instead of scripting Finder, which is why it works on a CI runner with no desktop session. Each row of `macos.yml` builds the app, runs the built-in check on it, makes the image, mounts it, compares the bundle version with the package version, and runs the check again on the app inside the mounted image. The app version comes from the package, through the spec. The image is plain HFS+ with compression, which every Mac that can run Hearth reads.
 
 The app is unsigned and not notarized, so the first open is blocked by Gatekeeper. Since macOS 15 the old right-click and Open shortcut no longer works. The person has to try once, then use Open Anyway in System Settings under Privacy & Security. The README says so in plain words. If the project ever gets an Apple developer account, sign and notarize the app before `dmgbuild`, then sign and notarize the image, and drop that README section.
 
@@ -30,7 +49,7 @@ Hearth sets the Basic style and imports only Qt Quick, Controls and Layouts. If 
 
 ### The built-in check
 
-`hearth --version file.txt` and `hearth --selftest file.txt` write their answer to the file, because a windowed build has no console. Without the file name they print. The self-test imports the device code, loads `Main.qml`, shows the window, grabs a picture of it and fails if the picture is blank. It reports the size of the unpacked folder too. `.github/workflows/windows.yml` and `macos.yml` build, run the check, and keep the file as an artifact. Windows runs it three times and writes the seconds to the job summary. Both also run on every push to a `cook/` branch.
+`hearth --version file.txt` and `hearth --selftest file.txt` write their answer to the file, because a windowed build has no console. Without the file name they print. The self-test reports which machine it ran on, checks that the bundled certificate list is there, imports the device code, loads `Main.qml`, shows the window, grabs a picture of it and fails if the picture is blank. It reports the size of the unpacked folder too. `.github/workflows/windows.yml` and `macos.yml` build, run the check, and keep the file as an artifact. Windows runs it three times and writes the seconds to the job summary. Both also run on every push to a `cook/` branch.
 
 ## Linux Flatpak
 
