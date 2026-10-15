@@ -10,7 +10,7 @@ Releases: https://github.com/helv-io/hearth/releases/latest
 
 | System | File | Run |
 | --- | --- | --- |
-| Windows | `Hearth-windows.zip` | Unzip, open the `hearth` folder, and run `hearth.exe`. Unsigned. |
+| Windows | `Hearth-windows.exe` | Download it and double-click. Nothing to unzip. Unsigned, so Windows warns first: choose More info, then Run anyway. The first start takes a few seconds. |
 | macOS | `Hearth-macos.zip` | Open `Hearth.app`. Unsigned. Gatekeeper will warn. |
 | Linux | `hearth.flatpak` | `flatpak install --user hearth.flatpak` |
 

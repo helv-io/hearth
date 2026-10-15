@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-10-15
+
+Windows is one small file, and the downloads are about a fifth of their old size.
+
+- Windows is a single `Hearth-windows.exe`. Download it and double-click. There is no zip and no folder beside it. It unpacks itself for a few seconds on each start.
+- The Windows file is about 60 MB, down from a 340 MB zip that held an 850 MB folder. The macOS download is about 60 MB, down from 270 MB. Hearth only carries the parts of Qt it uses. The web browser engine, 3D, charts, audio and video, the other window styles and the translations are gone.
+- Every Windows and macOS build now starts itself once, with no device attached, and checks that the window draws before anything is published.
+- Tests and builds: the Windows and macOS builds are their own workflows, which the release calls, and which also run on `cook/` branches. The Windows build fails if the file grows past a size limit. Details are in `docs/packaging.md`.
+
 ## 0.3.0 — 2026-10-15
 
 Hearth notices a device, sets up the USB service for you, and shows folder pages.
