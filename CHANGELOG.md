@@ -5,11 +5,12 @@
 Hearth notices a device, sets up the USB service for you, and shows folder pages.
 
 - A plugged-in device is noticed on its own, and the layout is read when the canvas has no unsaved edits. Refresh checks again without replacing the canvas.
-- Hearth checks the OS at startup. macOS needs nothing. Linux offers to install and start `usbmuxd`. Windows offers Apple Mobile Device Support through winget, or opens Apple Devices when winget is missing. The Linux Flatpak runs the same command on the host.
+- Hearth checks at startup that the USB service for iPhones and iPads is there. macOS needs nothing. On Linux and Windows one button installs and starts it for you, and on Windows it can open the Apple Devices page instead.
 - A folder with two or more pages shows that count in a red badge. Holding an icon at the edge of a page strip scrolls it, on the home screen and in the folder drawer. Pulling the folder handle down closes the drawer.
 - The buttons are Read from Device and Send to Device. Messages and docs no longer say pull or push.
 - Two devices at once say to unplug one, and the readme explains why.
-- Plainer wording for the USB service, the install buttons, the Flatpak, and the note on supervised devices. The sidebar tells you to copy the command and run it yourself if the button fails.
+- The USB setup speaks plainly. The sidebar and the buttons name no commands: Install USB service, Start USB service, Install USB driver, Start USB driver. A failed setup says what went wrong and offers a retry, and on Windows the Apple Devices page. Only after a failure does a folded Show manual steps appear, with the exact step and a Copy button.
+- The note on supervised devices in the readme is in everyday words.
 - The readme names the Windows program `hearth.exe`, which is what the build makes.
 - On Windows, the driver install and the service checks no longer flash console windows.
 - The GitHub Release notes come from this changelog.

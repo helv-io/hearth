@@ -68,16 +68,16 @@ class DriverPlanTests(unittest.TestCase):
     def test_windows_uses_winget_for_the_driver_package(self):
         report = status(Probe(system="Windows", have_winget=True))
         self.assertEqual(report.kind, "install")
-        self.assertEqual(report.action, "Install driver")
+        self.assertEqual(report.action, "Install USB driver")
         self.assertIn("Apple.AppleMobileDeviceSupport", report.command)
         self.assertIn("--disable-interactivity", report.command)
-        self.assertEqual(report.url, "")
+        self.assertIn("9np83lwlpz9k", report.url)
 
     def test_windows_without_winget_opens_the_store(self):
         report = status(Probe(system="Windows"))
         self.assertEqual(report.kind, "browse")
         self.assertEqual(report.command, ())
-        self.assertEqual(report.action, "Open Apple Devices")
+        self.assertEqual(report.action, "Open Apple Devices page")
         self.assertIn("9np83lwlpz9k", report.url)
 
     def test_other_systems_are_told_the_limit(self):
@@ -115,3 +115,73 @@ class QuietCommandTests(unittest.TestCase):
 
         with mock.patch.object(drivers, "_system", return_value="Linux"):
             self.assertNotIn("creationflags", drivers._quiet())
+
+
+class PlainTextTests(unittest.TestCase):
+    WORDS = ("pkexec", "winget", "usbmuxd", "flatpak-spawn", "sudo", "systemctl", "net start", "sh -c")
+
+    def probes(self):
+        return [
+            linux(socket_open=True),
+            linux(have_usbmuxd=True),
+            linux(package_manager="pacman"),
+            linux(flatpak=True, package_manager="apt-get"),
+            Probe(system="Windows", windows_installed=True),
+            Probe(system="Windows", have_winget=True),
+            Probe(system="Windows"),
+            Probe(system="FreeBSD"),
+        ]
+
+    def test_the_words_a_person_reads_have_no_commands(self):
+        for probe in self.probes():
+            report = status(probe)
+            for text in (report.headline, report.detail, report.action, report.url_action):
+                for word in self.WORDS:
+                    if report.kind == "manual" and word == "usbmuxd":
+                        continue  # a Linux with no known installer is told the package name
+                    self.assertNotIn(word, text, (probe, text))
+
+    def test_a_manual_step_exists_whenever_there_is_a_command(self):
+        for probe in self.probes():
+            report = status(probe)
+            if report.command:
+                self.assertTrue(report.manual, probe)
+
+    def test_windows_manual_steps(self):
+        self.assertEqual(
+            status(Probe(system="Windows", have_winget=True)).manual,
+            "winget install -e --id Apple.AppleMobileDeviceSupport",
+        )
+        self.assertEqual(
+            status(Probe(system="Windows", windows_installed=True)).manual,
+            'net start "Apple Mobile Device Service"',
+        )
+
+    def test_a_failed_windows_install_offers_the_store_page(self):
+        report = status(Probe(system="Windows", have_winget=True))
+        self.assertIn("9np83lwlpz9k", report.url)
+        self.assertEqual(report.url_action, "Open Apple Devices page")
+
+
+class InstallMessageTests(unittest.TestCase):
+    def run_install(self, code, plan_probe):
+        from unittest import mock
+        from hearth import drivers
+
+        needed = status(plan_probe)
+        with mock.patch.object(drivers, "status", return_value=needed), \
+                mock.patch.object(drivers, "_run", return_value=(code, "pkexec: boom /usr/bin/x")), \
+                mock.patch.object(drivers, "_is_windows", return_value=False):
+            return drivers.install()
+
+    def test_failures_are_plain_and_offer_a_retry(self):
+        linux_plan = linux(package_manager="pacman")
+        for code in (1, 124, 126, 127, 0):
+            text = self.run_install(code, linux_plan)
+            self.assertIn("Try again", text)
+            for word in PlainTextTests.WORDS + ("boom", "/usr"):
+                self.assertNotIn(word, text)
+
+    def test_a_failed_windows_install_also_offers_the_page(self):
+        text = self.run_install(1, Probe(system="Windows", have_winget=True))
+        self.assertIn("Apple Devices page", text)

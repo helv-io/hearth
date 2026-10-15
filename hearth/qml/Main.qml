@@ -247,7 +247,9 @@ ApplicationWindow {
                 }
 
                 Rectangle {
+                    id: driverCard
                     objectName: "driverCard"
+                    property bool manualOpen: false
                     visible: controller.driverNeeded
                     Layout.fillWidth: true
                     implicitHeight: driverCol.implicitHeight + 20
@@ -277,15 +279,6 @@ ApplicationWindow {
                             color: "#C7C7CC"
                             font.pixelSize: 11
                         }
-                        Text {
-                            Layout.fillWidth: true
-                            visible: controller.driverManual !== ""
-                            wrapMode: Text.WrapAnywhere
-                            text: controller.driverManual
-                            color: "#8E8E93"
-                            font.pixelSize: 10
-                            font.family: "monospace"
-                        }
                         Button {
                             Layout.fillWidth: true
                             visible: controller.driverAction !== ""
@@ -300,6 +293,71 @@ ApplicationWindow {
                                 verticalAlignment: Text.AlignVCenter
                                 font.bold: true
                                 font.pixelSize: 12
+                            }
+                        }
+                        Button {
+                            objectName: "driverPageButton"
+                            Layout.fillWidth: true
+                            visible: controller.driverUrlAction !== ""
+                            text: controller.driverUrlAction
+                            enabled: !controller.busy
+                            onClicked: controller.openDriverPage()
+                            background: Rectangle { radius: 8; color: parent.down ? "#2C2C32" : "#3A3A40" }
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                font.pixelSize: 12
+                            }
+                        }
+                        Text {
+                            objectName: "manualToggle"
+                            Layout.fillWidth: true
+                            visible: controller.driverManual !== ""
+                            text: driverCard.manualOpen ? "Hide manual steps" : "Show manual steps"
+                            color: "#0A84FF"
+                            font.pixelSize: 11
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: driverCard.manualOpen = !driverCard.manualOpen
+                            }
+                        }
+                        ColumnLayout {
+                            objectName: "manualSteps"
+                            Layout.fillWidth: true
+                            visible: controller.driverManual !== "" && driverCard.manualOpen
+                            spacing: 6
+                            Text {
+                                Layout.fillWidth: true
+                                wrapMode: Text.WordWrap
+                                text: "Run this once on your computer if the button doesn't work."
+                                color: "#C7C7CC"
+                                font.pixelSize: 11
+                            }
+                            TextEdit {
+                                Layout.fillWidth: true
+                                readOnly: true
+                                selectByMouse: true
+                                wrapMode: Text.WrapAnywhere
+                                text: controller.driverManual
+                                color: "#8E8E93"
+                                font.pixelSize: 10
+                                font.family: "monospace"
+                            }
+                            Button {
+                                Layout.fillWidth: true
+                                text: "Copy"
+                                onClicked: controller.copyDriverManual()
+                                background: Rectangle { radius: 8; color: parent.down ? "#2C2C32" : "#3A3A40" }
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: "white"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    font.pixelSize: 12
+                                }
                             }
                         }
                     }

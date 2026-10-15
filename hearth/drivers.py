@@ -1,8 +1,9 @@
 """USB service for an iPhone or iPad.
 
 macOS already has it. Linux needs usbmuxd. Windows needs Apple Mobile
-Device Support. The install commands are fixed here. Nothing the user
-types is passed to a shell.
+Device Support. The install commands are fixed here and are never shown
+to the user. Nothing the user types is passed to a shell. Every sentence
+in a Report is for people: no command names, no paths.
 """
 
 from __future__ import annotations
@@ -41,15 +42,25 @@ class Probe:
 
 @dataclass(frozen=True)
 class Report:
+    """What the sidebar shows. Everything except `command` is for people.
+
+    `command` is the fixed argv Hearth runs for the action button. It is never
+    shown. `manual` is the same step as text a person can run themselves. The
+    sidebar shows it only after the button has failed, folded away. `url` is a
+    page to open, and `url_action` labels it as a second button when the
+    command can fail.
+    """
+
     needed: bool
     ready: bool
     kind: str
-    headline: str
-    detail: str
-    action: str
-    manual: str
-    command: tuple[str, ...]
-    url: str
+    headline: str = ""
+    detail: str = ""
+    action: str = ""
+    manual: str = ""
+    command: tuple[str, ...] = ()
+    url: str = ""
+    url_action: str = ""
 
 
 def status(probe: Probe | None = None) -> Report:
@@ -65,34 +76,33 @@ def status(probe: Probe | None = None) -> Report:
         ready=False,
         kind="manual",
         headline="This system is not set up",
-        detail="Hearth installs the USB service on Linux and Windows. macOS already has it.",
-        action="",
-        manual="",
-        command=(),
-        url="",
+        detail="Hearth sets up the USB service on Linux and Windows. macOS already has it.",
     )
 
 
 def install() -> str:
-    """Run the current plan. Returns a sentence for the status line."""
+    """Run the current plan. Returns a plain sentence for the status line."""
     report = status()
     if not report.needed or report.ready:
         return "USB support is already in place."
     if not report.command:
         return report.detail
-    code, tail = _run(report.command, timeout=600)
+    code, _ = _run(report.command, timeout=600)
     if report.kind in ("install", "start") and _is_windows():
         _ensure_windows_service()
     again = status()
     if again.ready or not again.needed:
         return "USB support is ready. Plug in an iPhone or iPad. Hearth reads it when it appears."
+    retry = "Try again" + (", or open the Apple Devices page." if again.url_action else ".")
     if code == 126:
-        return "The password prompt was closed."
+        return f"The password prompt was closed. {retry}"
+    if code == 124:
+        return f"The setup took too long. {retry}"
+    if code == 127:
+        return f"Hearth could not run the setup on this computer. {retry}"
     if code != 0:
-        extra = f" {tail}" if tail else ""
-        manual = f" Run: {report.manual}" if report.manual else ""
-        return f"Install stopped ({code}).{extra}{manual}".strip()
-    return again.detail or "The command finished, but the USB service is still not running."
+        return f"The setup did not finish. {retry}"
+    return f"The setup finished, but the USB service is still not running. {retry}"
 
 
 def live_probe() -> Probe:
@@ -124,78 +134,70 @@ def in_flatpak() -> bool:
 
 
 def _ready_mac() -> Report:
-    return Report(False, True, "ready", "", "", "", "", (), "")
+    return Report(False, True, "ready")
 
 
 def _linux(probe: Probe) -> Report:
     if probe.socket_open:
-        return Report(True, True, "ready", "", "", "", "", (), "")
+        return Report(True, True, "ready")
     if probe.have_usbmuxd:
         body = "systemctl enable --now usbmuxd" if probe.have_systemctl else "usbmuxd"
         return Report(
             True,
             False,
             "start",
-            "The USB service (usbmuxd) is not running",
-            "The package is installed. Hearth can start it. You will get a password prompt.",
-            "Start USB service",
-            _manual(body),
-            _host(probe.flatpak, "pkexec", "sh", "-c", body),
-            "",
+            headline="The USB service is not running",
+            detail="Hearth can start it for you. You may be asked for your password.",
+            action="Start USB service",
+            manual=_manual(body),
+            command=_host(probe.flatpak, "pkexec", "sh", "-c", body),
         )
     body = _install_body(probe.package_manager, probe.have_systemctl)
     if not body:
-        manual = _manual_choices()
         return Report(
             True,
             False,
             "manual",
-            "Linux needs the USB service (usbmuxd)",
-            "Hearth could not tell how to install software on this Linux. Install usbmuxd with your distro's package tool, then start it.",
-            "",
-            manual,
-            (),
-            "",
+            headline="Linux needs the USB service",
+            detail="Hearth cannot set it up on this Linux by itself. Look for a package named usbmuxd in your software center, install it, then start Hearth again.",
+            manual=_manual_choices(),
         )
     return Report(
         True,
         False,
         "install",
-        "Linux needs the USB service (usbmuxd)",
-        "usbmuxd lets this computer talk to an iPhone or iPad over a cable. Hearth can install it and start it. You will get a password prompt.",
-        "Install USB service",
-        _manual(body),
-        _host(probe.flatpak, "pkexec", "sh", "-c", body),
-        "",
+        headline="Linux needs the USB service",
+        detail="The USB service lets this computer talk to an iPhone or iPad over a cable. Hearth installs it for you. You may be asked for your password.",
+        action="Install USB service",
+        manual=_manual(body),
+        command=_host(probe.flatpak, "pkexec", "sh", "-c", body),
     )
 
 
 def _windows(probe: Probe) -> Report:
     if probe.windows_running:
-        return Report(True, True, "ready", "", "", "", "", (), "")
+        return Report(True, True, "ready")
     if probe.windows_installed:
         return Report(
             True,
             False,
             "start",
-            "Apple Mobile Device Service is stopped",
-            "The driver is installed. Hearth can start it. Approve the Windows prompt if it appears.",
-            "Start driver service",
-            f'net start "{SERVICE}"',
-            ("net", "start", SERVICE),
-            "",
+            headline="Apple's USB driver is not running",
+            detail="It is installed. Hearth can start it for you. You may be asked to approve it.",
+            action="Start USB driver",
+            manual=f'net start "{SERVICE}"',
+            command=("net", "start", SERVICE),
         )
     if probe.have_winget:
-        manual = f"winget install -e --id {WINGET_ID}"
         return Report(
             True,
             False,
             "install",
-            "Windows needs Apple's mobile driver",
-            "Apple Mobile Device Support lets this PC talk to an iPhone or iPad over a cable. Hearth can install it. Approve the Windows prompt if it appears.",
-            "Install driver",
-            manual,
-            (
+            headline="Windows needs Apple's USB driver",
+            detail="The driver lets this PC talk to an iPhone or iPad over a cable. Hearth installs it for you. You may be asked to approve it.",
+            action="Install USB driver",
+            manual=f"winget install -e --id {WINGET_ID}",
+            command=(
                 "winget",
                 "install",
                 "-e",
@@ -205,18 +207,17 @@ def _windows(probe: Probe) -> Report:
                 "--accept-source-agreements",
                 "--disable-interactivity",
             ),
-            "",
+            url=STORE_URL,
+            url_action="Open Apple Devices page",
         )
     return Report(
         True,
         False,
         "browse",
-        "Windows needs Apple's mobile driver",
-        "This PC has no app installer (winget). Install Apple Devices from the Microsoft Store. That installs the driver. iTunes from Apple does too.",
-        "Open Apple Devices",
-        f"winget install -e --id {WINGET_ID}",
-        (),
-        STORE_URL,
+        headline="Windows needs Apple's USB driver",
+        detail="Hearth cannot install it by itself on this PC. Open the Apple Devices page, install it from the Microsoft Store, then come back. iTunes from Apple also works.",
+        action="Open Apple Devices page",
+        url=STORE_URL,
     )
 
 

@@ -7,7 +7,7 @@ from copy import deepcopy
 from threading import Event, Thread
 
 from PySide6.QtCore import QObject, QThread, Property, Signal, Slot, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtGui import QDesktopServices, QGuiApplication
 
 from hearth import ai, device, drivers, grok_sso, icons, layout, presets, screens, settings
 
@@ -121,6 +121,7 @@ class Controller(QObject):
         self._grok_code = ""
         self._grok_link = ""
         self._driver = drivers.status()
+        self._driver_failed = False
         self._link = ""
         self._pending_link = ""
         self._pending_hits = 0
@@ -231,9 +232,17 @@ class Controller(QObject):
     driverAction = Property(str, _driver_action, notify=driverChanged)
 
     def _driver_manual(self):
-        return self._driver.manual
+        """The same step as text, only after the button failed or when there is no button."""
+        if self._driver_failed or self._driver.kind == "manual":
+            return self._driver.manual
+        return ""
 
     driverManual = Property(str, _driver_manual, notify=driverChanged)
+
+    def _driver_url_action(self):
+        return self._driver.url_action
+
+    driverUrlAction = Property(str, _driver_url_action, notify=driverChanged)
 
     def _wall(self):
         return self._wallpaper
@@ -530,12 +539,19 @@ class Controller(QObject):
             return
         if report.url and not report.command:
             QDesktopServices.openUrl(QUrl(report.url))
-            self._set_status("Opened the Apple Devices page. Read from Device after it finishes.", False)
+            self._set_status("Opened the Apple Devices page. Come back when it has finished.", False)
             return
         if not report.command:
             self._set_status(report.detail, True)
             return
         self._start(_Job("driver", self._cancel))
+
+    @Slot()
+    def openDriverPage(self):
+        url = self._driver.url
+        if url:
+            QDesktopServices.openUrl(QUrl(url))
+            self._set_status("Opened the Apple Devices page. Come back when it has finished.", False)
 
     @Slot()
     def pull(self):
@@ -733,17 +749,32 @@ class Controller(QObject):
         self._grok_code = ""
         self._grok_link = ""
         self.grokChanged.emit()
+        was_driver = self._job is not None and self._job.kind == "driver"
         self._remember_driver()
+        if was_driver and self._driver_needed():
+            self._driver_failed = True
+            self.driverChanged.emit()
         self._set_status(text, True)
 
     def _on_driver(self, text: str):
         self._remember_driver()
         ready = self._driver.ready or not self._driver.needed
+        self._driver_failed = not ready
+        self.driverChanged.emit()
         self._set_status(text, not ready)
 
     def _remember_driver(self):
         self._driver = drivers.status()
+        if not self._driver_needed():
+            self._driver_failed = False
         self.driverChanged.emit()
+
+    @Slot()
+    def copyDriverManual(self):
+        text = self._driver_manual()
+        if text:
+            QGuiApplication.clipboard().setText(text)
+            self._set_status("Copied.", False)
 
     def _on_pulled(self, meta: dict):
         state = meta.get("state")

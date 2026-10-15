@@ -2,7 +2,7 @@
 
 Hearth talks to one iPhone or iPad over USB. Unlock the device and tap Trust. A developer disk image is not used.
 
-macOS already has the mobile USB service. Linux needs `usbmuxd`. Windows needs Apple Mobile Device Support. Hearth checks which system it is on and, when the service is missing or stopped, offers to install or start it. On Linux the button asks for your password with `pkexec`. In the Flatpak it runs on your computer, outside the Flatpak. On Windows the button runs `winget install -e --id Apple.AppleMobileDeviceSupport`, or opens Apple Devices in the Store when winget is not there. The sidebar shows the command, so you can run it yourself if the button fails.
+macOS already has the USB service. Linux needs `usbmuxd`. Windows needs Apple Mobile Device Support. Hearth checks which system it is on and, when the service is missing or stopped, one button installs or starts it. You may be asked for your password or to approve it. When the setup fails, the sidebar says what went wrong, offers the button again, and on Windows offers the Apple Devices page in the Store. It also offers **Show manual steps**, folded away, with the exact step and a Copy button. The step is never shown before a failure.
 
 Hearth works with one device at a time. If two are plugged in, Read from Device and Send to Device stop and ask you to unplug one. Two devices talking at once can send the layout to the wrong one. The serial number is not shown.
 

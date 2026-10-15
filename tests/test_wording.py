@@ -11,8 +11,8 @@ class WordingTests(unittest.TestCase):
         self.assertNotIn("pull", text.lower())
 
     def test_install_success_names_no_removed_button(self):
-        ready = drivers.Report(False, True, "ready", "", "", "", "", (), "")
-        needed = drivers.Report(True, False, "install", "", "", "", "", ("x",), "")
+        ready = drivers.Report(False, True, "ready")
+        needed = drivers.Report(True, False, "install", command=("x",))
         with mock.patch.object(drivers, "status", side_effect=[needed, ready]), \
                 mock.patch.object(drivers, "_run", return_value=(0, "")), \
                 mock.patch.object(drivers, "_is_windows", return_value=False):

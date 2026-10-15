@@ -36,21 +36,25 @@ Unlock the device and tap Trust. Hearth checks every two seconds. The first time
 
 One device at a time. If two are plugged in, Hearth does not guess which one you mean. It tells you to unplug one. Two devices talking at once could send a layout to the wrong phone.
 
-macOS already has the USB service, the program that lets a computer talk to an iPhone or iPad over a cable. Windows and Linux do not. Hearth checks at startup. When the service is missing, the sidebar says so and the button installs it. On Linux it is called `usbmuxd`. On Windows it is Apple Mobile Device Support.
+macOS already has the USB service, the program that lets a computer talk to an iPhone or iPad over a cable. Windows and Linux may not. Hearth checks at startup. When the service is missing or stopped, the sidebar says so and one button sets it up.
 
-| System | What is missing | What the button does |
-| --- | --- | --- |
-| Linux | `usbmuxd` | Installs it and starts it. Asks for your password. |
-| Linux | `usbmuxd` is installed but not running | Starts it. |
-| Linux Flatpak | same | Runs it on your computer, outside the Flatpak. |
-| Windows | Apple Mobile Device Support | `winget install -e --id Apple.AppleMobileDeviceSupport` |
-| Windows | winget is missing | Opens [Apple Devices](https://apps.microsoft.com/detail/9np83lwlpz9k) in the Store. iTunes from Apple installs the same driver. |
-| Windows | service is stopped | Starts Apple Mobile Device Service. |
-| macOS | nothing | No button. |
+| System | What Hearth does |
+| --- | --- |
+| Linux | Installs the USB service if it is missing, and starts it. You may be asked for your password. |
+| Windows | Installs Apple's USB driver if it is missing, and starts it. You may be asked to approve it. If it cannot, the sidebar opens the [Apple Devices](https://apps.microsoft.com/detail/9np83lwlpz9k) page in the Store. |
+| macOS | Nothing. |
 
-A developer disk image is not required.
+When the setup works you see nothing more. If it fails, the sidebar says what went wrong in plain words, and you can press the button again.
 
-If the button fails, copy the command shown in the sidebar and run it yourself in a terminal.
+### If the button fails
+
+The sidebar then shows **Show manual steps**. It opens the exact step and a Copy button. Run it once in a terminal, and on Windows in a terminal opened as administrator.
+
+| System | Step |
+| --- | --- |
+| Windows, driver missing | `winget install -e --id Apple.AppleMobileDeviceSupport` |
+| Windows, driver stopped | `net start "Apple Mobile Device Service"` |
+| Linux | The sidebar shows the line for your distro. It installs `usbmuxd` and starts it. |
 
 ## Edit
 
