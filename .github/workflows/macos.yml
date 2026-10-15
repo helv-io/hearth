@@ -1,0 +1,45 @@
+name: macOS build
+
+# Builds Hearth.app, starts it once to prove it works, and keeps it as the
+# Hearth-macos.zip artifact. The release workflow calls this one.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches:
+      - "cook/**"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e . pyinstaller
+      - name: Build
+        run: pyinstaller packaging/pyinstaller/hearth.spec
+      - name: Start it and check the window
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          du -sh dist/Hearth.app
+          dist/Hearth.app/Contents/MacOS/hearth --version "$RUNNER_TEMP/version.txt"
+          cat "$RUNNER_TEMP/version.txt"
+          time dist/Hearth.app/Contents/MacOS/hearth --selftest "$RUNNER_TEMP/selftest.txt"
+          cat "$RUNNER_TEMP/selftest.txt"
+      - name: Pack
+        run: ditto -c -k --keepParent dist/Hearth.app Hearth-macos.zip
+      - run: ls -l Hearth-macos.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hearth-macos.zip
+          path: Hearth-macos.zip
+          if-no-files-found: error
+          compression-level: 0
