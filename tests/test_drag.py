@@ -145,12 +145,26 @@ class DragGestureTests(unittest.TestCase):
         self.assertNotIn("forceFloat", main)
         self.assertNotIn("detached", main)
         self.assertIn('sequence: "Escape"', main)
+        self.assertIn("nudgePages", main)
+        self.assertIn("pagesFlick", tray)
+        self.assertIn("folderHandle", tray)
+        self.assertIn("closeFolder", tray)
+        phone = (QML_DIR / "PhonePage.qml").read_text(encoding="utf-8")
+        self.assertIn("pageCount", phone)
+        self.assertIn("driverCard", main)
+        self.assertIn("installDriver", main)
+        self.assertIn('placeholderText: "Put games together. Keep the dock."', main)
+        self.assertIn("instructionView.availableWidth", main)
+        self.assertIn("Write a little or a lot.", main)
+        self.assertIn('text: "Read from Device"', main)
+        self.assertIn('text: "Send to Device"', main)
+        self.assertIn("refreshDevice", main)
 
     def test_qml_files_compile(self):
         from PySide6.QtQml import QQmlComponent, QQmlEngine
 
         engine = QQmlEngine()
-        for name in ("Main.qml", "PhonePage.qml", "FolderTray.qml", "DragSpot.qml", "IconBadge.qml"):
+        for name in ("Main.qml", "PhonePage.qml", "FolderTray.qml", "DragSpot.qml", "IconBadge.qml", "PageBadge.qml"):
             component = QQmlComponent(engine, QUrl.fromLocalFile(str(QML_DIR / name)))
             errors = "\n".join(error.toString() for error in component.errors())
             self.assertEqual(component.status(), QQmlComponent.Status.Ready, f"{name}\n{errors}")

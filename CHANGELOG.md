@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Hearth checks the OS at startup. macOS needs nothing. Linux offers to install and start `usbmuxd`. Windows offers Apple Mobile Device Support through winget, or opens Apple Devices when winget is missing.
+- A plugged-in device is noticed on its own. Refresh checks again without replacing the canvas. The buttons are Read from Device and Send to Device.
+
 ## 0.2.1 — 2026-10-15
 
 The Flatpak release job runs inside the KDE 6.10 builder image, which is the runtime image published for that action. The 0.2.0 job failed immediately because the plain Ubuntu runner has no `flatpak-builder`.

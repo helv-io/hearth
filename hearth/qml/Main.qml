@@ -77,6 +77,8 @@ ApplicationWindow {
     QtObject {
         id: drag
         property bool active: false
+        property real pointerX: 0
+        property real pointerY: 0
         signal aborted()
 
         function begin(source, letter, ident, kind, x, y, sample, holdX, holdY) {
@@ -114,11 +116,62 @@ ApplicationWindow {
                 aborted()
         }
         function place(x, y) {
+            pointerX = x
+            pointerY = y
             const p = overlay.mapFromItem(null, x, y)
             ghost.x = p.x - ghost.holdX
             ghost.y = p.y - ghost.holdY
             win.hot = hit(x, y)
         }
+
+        // Holding an icon against either page strip's side scrolls that strip.
+        function flickUnderPointer() {
+            if ((controller.folder.source || "") !== "" && tray.pagesFlick) {
+                const folderLocal = tray.pagesFlick.mapFromItem(null, pointerX, pointerY)
+                if (folderLocal.y >= 0 && folderLocal.y <= tray.pagesFlick.height
+                        && folderLocal.x >= -36 && folderLocal.x <= tray.pagesFlick.width + 36)
+                    return tray.pagesFlick
+            }
+            const stageLocal = stage.mapFromItem(null, pointerX, pointerY)
+            if (stageLocal.y >= 0 && stageLocal.y <= stage.height
+                    && stageLocal.x >= -36 && stageLocal.x <= stage.width + 36)
+                return stage
+            return null
+        }
+
+        function nudgePages() {
+            if (!active)
+                return
+            const flick = flickUnderPointer()
+            if (!flick || flick.width < 1)
+                return
+            const local = flick.mapFromItem(null, pointerX, pointerY)
+            const margin = Math.min(72, Math.max(40, flick.width * 0.09))
+            let dir = 0
+            let depth = 0
+            if (local.x < margin) {
+                dir = -1
+                depth = Math.max(0, Math.min(1, (margin - local.x) / margin))
+            } else if (local.x > flick.width - margin) {
+                dir = 1
+                depth = Math.max(0, Math.min(1, (local.x - (flick.width - margin)) / margin))
+            }
+            if (dir === 0)
+                return
+            const limit = Math.max(0, flick.contentWidth - flick.width)
+            const next = Math.max(0, Math.min(limit, flick.contentX + dir * (4 + depth * 12)))
+            if (next === flick.contentX)
+                return
+            flick.contentX = next
+            win.hot = hit(pointerX, pointerY)
+        }
+    }
+
+    Timer {
+        interval: 16
+        repeat: true
+        running: drag.active
+        onTriggered: drag.nudgePages()
     }
 
     Shortcut {
@@ -164,25 +217,97 @@ ApplicationWindow {
                     }
                 }
 
-                Text {
+                RowLayout {
                     Layout.fillWidth: true
-                    text: controller.deviceName || "Nothing connected yet"
-                    color: "white"
-                    font.pixelSize: 13
-                    font.bold: true
-                    elide: Text.ElideRight
+                    spacing: 8
+                    Text {
+                        Layout.fillWidth: true
+                        text: controller.deviceName || controller.linkLabel
+                        color: "white"
+                        font.pixelSize: 13
+                        font.bold: true
+                        elide: Text.ElideRight
+                    }
+                    Button {
+                        objectName: "refreshDevice"
+                        text: "Refresh"
+                        enabled: !controller.busy
+                        onClicked: controller.refreshDevice()
+                        background: Rectangle { radius: 8; color: parent.hovered ? "#1C1C22" : "transparent"; border.color: "#3A3A40"; border.width: 1 }
+                        contentItem: Text { text: parent.text; color: "#C7C7CC"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 11; leftPadding: 8; rightPadding: 8 }
+                    }
                 }
                 Text {
                     Layout.fillWidth: true
-                    text: controller.subtitle
+                    text: controller.subtitle || controller.linkDetail
                     color: "#8E8E93"
                     font.pixelSize: 11
-                    visible: controller.subtitle !== ""
+                    visible: text !== ""
+                    elide: Text.ElideRight
+                }
+
+                Rectangle {
+                    objectName: "driverCard"
+                    visible: controller.driverNeeded
+                    Layout.fillWidth: true
+                    implicitHeight: driverCol.implicitHeight + 20
+                    radius: 10
+                    color: "#1C1C22"
+                    border.color: "#3A3A40"
+                    border.width: 1
+                    ColumnLayout {
+                        id: driverCol
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 10
+                        spacing: 8
+                        Text {
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            text: controller.driverHeadline
+                            color: "white"
+                            font.pixelSize: 12
+                            font.bold: true
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            text: controller.driverDetail
+                            color: "#C7C7CC"
+                            font.pixelSize: 11
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            visible: controller.driverManual !== ""
+                            wrapMode: Text.WrapAnywhere
+                            text: controller.driverManual
+                            color: "#8E8E93"
+                            font.pixelSize: 10
+                            font.family: "monospace"
+                        }
+                        Button {
+                            Layout.fillWidth: true
+                            visible: controller.driverAction !== ""
+                            text: controller.driverAction
+                            enabled: !controller.busy
+                            onClicked: controller.installDriver()
+                            background: Rectangle { radius: 8; color: parent.down ? "#0060D0" : "#0A84FF" }
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                font.bold: true
+                                font.pixelSize: 12
+                            }
+                        }
+                    }
                 }
 
                 Button {
                     Layout.fillWidth: true
-                    text: "Pull"
+                    text: "Read from Device"
                     enabled: !controller.busy
                     onClicked: controller.pull()
                     background: Rectangle { radius: 10; color: parent.down ? "#2A2A30" : "#1C1C22"; border.color: "#3A3A40"; border.width: 1 }
@@ -190,7 +315,7 @@ ApplicationWindow {
                 }
                 Button {
                     Layout.fillWidth: true
-                    text: controller.dirty ? "Push" : "In sync"
+                    text: controller.dirty ? "Send to Device" : "In sync"
                     enabled: controller.dirty && !controller.busy
                     onClicked: confirmOpen = true
                     background: Rectangle {
@@ -259,7 +384,7 @@ ApplicationWindow {
                     wrapMode: Text.WordWrap
                     text: groupMode
                         ? "Drop an app on another app to make a folder. Move mode places icons beside each other and can leave empty cells."
-                        : "Drag an icon to move it. Drop it on an empty cell to leave a gap, or on the side of an icon to place it beside that icon. Drop on the middle of a folder to put it inside. Drag a name to slide the pages. Click a folder to open it underneath."
+                        : "Drag an icon to move it. Drop it on an empty cell to leave a gap, or on the side of an icon to place it beside that icon. Drop on the middle of a folder to put it inside. Drag a name, or hold an icon at the side of the canvas, to slide the pages. Click a folder to open it underneath. Pull the folder handle down to close it."
                     color: "#8E8E93"
                     font.pixelSize: 11
                 }
@@ -456,6 +581,7 @@ ApplicationWindow {
                         anchors.leftMargin: 8
                         anchors.rightMargin: 8
                         height: stageHost.trayWanted * stageHost.trayReveal
+                        anchors.bottomMargin: -tray.pull
                         z: 4
                         dragApi: drag
                         hot: win.hot
@@ -526,11 +652,14 @@ ApplicationWindow {
                         }
                     }
                     ScrollView {
+                        id: instructionView
                         width: parent.width
                         height: 110
+                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                         TextArea {
                             id: instruction
-                            placeholderText: "Put games in one folder. Keep the dock. Sort each folder by name."
+                            width: instructionView.availableWidth
+                            placeholderText: "Put games together. Keep the dock."
                             wrapMode: TextArea.Wrap
                             color: "white"
                             placeholderTextColor: "#6E6E73"
@@ -539,7 +668,15 @@ ApplicationWindow {
                             leftPadding: 10
                             rightPadding: 10
                             topPadding: 8
+                            bottomPadding: 8
                         }
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: "Write a little or a lot. Describe the home screen you want."
+                        color: "#8E8E93"
+                        font.pixelSize: 12
                     }
                     Button {
                         width: parent.width
@@ -858,19 +995,19 @@ ApplicationWindow {
                 y: 18
                 width: parent.width - 36
                 spacing: 12
-                Text { text: "Push this layout?"; color: "white"; font.pixelSize: 18; font.bold: true }
+                Text { text: "Send this layout?"; color: "white"; font.pixelSize: 18; font.bold: true }
                 Text {
                     width: parent.width
                     wrapMode: Text.WordWrap
                     text: "This replaces the home screen on the connected iPhone or iPad. A backup is saved first. The device is read back, and if the layout does not stick the previous one is restored."
-                        + (controller.hasHoles ? " Gaps on a page stay in this editor. A push closes them, because the phone's layout list has no empty cells." : "")
+                        + (controller.hasHoles ? " Gaps on a page stay in this editor. Sending closes them, because the phone's layout list has no empty cells." : "")
                     color: "#C7C7CC"
                     font.pixelSize: 13
                 }
                 Row {
                     spacing: 8
                     Button {
-                        text: "Push"
+                        text: "Send to Device"
                         onClicked: { confirmOpen = false; controller.push() }
                         background: Rectangle { radius: 8; color: "#0A84FF" }
                         contentItem: Text { text: parent.text; color: "white"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; leftPadding: 16; rightPadding: 16 }
@@ -887,9 +1024,10 @@ ApplicationWindow {
     }
 
     Timer {
-        interval: 200
+        interval: 2000
         running: true
-        repeat: false
-        onTriggered: controller.pull()
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: controller.checkDevice()
     }
 }

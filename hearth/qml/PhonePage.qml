@@ -366,6 +366,15 @@ Item {
                                     ident: modelData.ident
                                     kind: modelData.kind
                                 }
+                                PageBadge {
+                                    z: 6
+                                    pages: modelData.pageCount || 0
+                                    side: Math.max(13 * root.u, face.width * 0.32)
+                                    anchors.right: face.right
+                                    anchors.top: face.top
+                                    anchors.rightMargin: -width * 0.18
+                                    anchors.topMargin: -height * 0.18
+                                }
                                 DragSpot {
                                     anchors.left: parent.left
                                     anchors.right: parent.right
@@ -440,6 +449,15 @@ Item {
                                         letter: modelData.letter || ""
                                         ident: modelData.ident || ""
                                         kind: modelData.kind || "app"
+                                    }
+                                    PageBadge {
+                                        z: 6
+                                        pages: modelData.pageCount || 0
+                                        side: Math.max(12, parent.iconSide * 0.34)
+                                        anchors.right: dockIcon.right
+                                        anchors.top: dockIcon.top
+                                        anchors.rightMargin: -width * 0.18
+                                        anchors.topMargin: -height * 0.18
                                     }
                                 }
                             }

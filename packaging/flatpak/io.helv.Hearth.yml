@@ -12,6 +12,7 @@ finish-args:
   - --device=all
   - --filesystem=/run/usbmuxd
   - --filesystem=/var/run/usbmuxd
+  - --talk-name=org.freedesktop.Flatpak
 modules:
   - name: hearth
     buildsystem: simple

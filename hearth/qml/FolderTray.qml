@@ -10,6 +10,8 @@ Rectangle {
     property string hot: ""
     property real reveal: 0
     property real wanted: 280
+    property real pull: 0
+    property alias pagesFlick: folderFlick
 
     objectName: "folderTray"
     radius: 18
@@ -61,7 +63,15 @@ Rectangle {
     }
 
     property string openSource: controller.folder.source || ""
-    onOpenSourceChanged: folderFlick.contentX = 0
+    onOpenSourceChanged: {
+        folderFlick.contentX = 0
+        if (openSource !== "")
+            pull = 0
+    }
+    onRevealChanged: {
+        if (reveal < 0.02)
+            pull = 0
+    }
     Component.onCompleted: syncName()
 
     Connections {
@@ -69,14 +79,56 @@ Rectangle {
         function onFolderChanged() { tray.syncName() }
     }
 
-    Rectangle {
-        anchors.horizontalCenter: parent.horizontalCenter
+    MouseArea {
+        id: handle
+        objectName: "folderHandle"
+        z: 5
         anchors.top: parent.top
-        anchors.topMargin: 7
-        width: 36
-        height: 4
-        radius: 2
-        color: "#55FFFFFF"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 22
+        enabled: tray.reveal > 0.4
+        preventStealing: true
+        cursorShape: pressed ? Qt.ClosedHandCursor : Qt.SizeVerCursor
+        property real originSceneY: 0
+        property real originPull: 0
+
+        function pointerSceneY(mouse) {
+            return mapToItem(null, mouse.x, mouse.y).y
+        }
+
+        onPressed: (mouse) => {
+            originSceneY = pointerSceneY(mouse)
+            originPull = tray.pull
+        }
+        onPositionChanged: (mouse) => {
+            if (!pressed)
+                return
+            tray.pull = Math.max(0, originPull + pointerSceneY(mouse) - originSceneY)
+        }
+        onReleased: (mouse) => {
+            const travel = Math.max(0, originPull + pointerSceneY(mouse) - originSceneY)
+            if (travel > 56)
+                controller.closeFolder()
+            else
+                tray.pull = 0
+        }
+        onCanceled: tray.pull = 0
+
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: 7
+            width: 36
+            height: 4
+            radius: 2
+            color: handle.pressed || tray.pull > 0 ? "#AAFFFFFF" : "#55FFFFFF"
+        }
+    }
+
+    Behavior on pull {
+        enabled: !handle.pressed
+        NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
     }
 
     Row {
@@ -86,7 +138,7 @@ Rectangle {
         anchors.top: parent.top
         anchors.leftMargin: 14
         anchors.rightMargin: 14
-        anchors.topMargin: 18
+        anchors.topMargin: 22
         spacing: 8
 
         TextField {

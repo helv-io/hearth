@@ -8,7 +8,7 @@ import plistlib
 from datetime import datetime
 from pathlib import Path
 
-from hearth import icons
+from hearth import drivers, icons
 from hearth.layout import ident, is_widget, kind_of, label, monogram
 from hearth.paths import version_dir
 from hearth.screens import Screen, note_fields
@@ -28,10 +28,10 @@ def friendly(exc: BaseException) -> str:
     if "more than one" in lowered:
         return "More than one iPhone or iPad is connected. Leave one plugged in and pull again."
     if "usbmux" in lowered or "no device" in lowered or "device not found" in lowered or "connection refused" in lowered:
-        return (
-            "No iPhone or iPad is connected. Unlock it and tap Trust if this computer asks. "
-            "Linux needs usbmuxd. Windows needs Apple Devices or iTunes from Apple."
-        )
+        report = drivers.status()
+        if report.needed and not report.ready:
+            return report.detail
+        return "No iPhone or iPad is connected. Unlock it and tap Trust if this computer asks."
     return text
 
 
@@ -113,6 +113,25 @@ def load_note(path: str) -> dict:
     except (OSError, json.JSONDecodeError, UnicodeError):
         return {}
     return data if isinstance(data, dict) else {}
+
+
+async def _listed():
+    from pymobiledevice3.usbmux import list_devices
+    return await list_devices()
+
+
+def presence() -> str:
+    """How many devices usbmux can see: none, one, or many. Serials stay out."""
+    try:
+        found = asyncio.run(_listed())
+    except Exception:
+        return "none"
+    count = len(found or [])
+    if count > 1:
+        return "many"
+    if count == 1:
+        return "one"
+    return "none"
 
 
 async def _connect():

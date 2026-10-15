@@ -1,6 +1,8 @@
 # Devices
 
-Hearth talks to one iPhone or iPad through usbmuxd. Unlock the device and tap Trust. A developer disk image is not used.
+Hearth talks to one iPhone or iPad over USB. Unlock the device and tap Trust. A developer disk image is not used.
+
+macOS already has the mobile USB service. Linux needs `usbmuxd`. Windows needs Apple Mobile Device Support. Hearth checks which OS it is on and, when the service is missing or stopped, offers to install or start it. The Linux button runs `pkexec` (on the host, when Hearth itself is a Flatpak). The Windows button runs `winget install -e --id Apple.AppleMobileDeviceSupport`, or opens Apple Devices in the Store when winget is not there. The sidebar shows the command.
 
 If two devices are listed, pull and push stop and ask you to leave one plugged in. The serial is not shown.
 
@@ -37,6 +39,6 @@ Linux uses the XDG directories. macOS uses Application Support and Caches. Windo
 
 If a `hearth` directory is missing and `iphone-layout` is already there, Hearth keeps using `iphone-layout`. A machine with neither gets `hearth`. Pairing records stay in pymobiledevice3's directory, not in this repo.
 
-## Push
+## Send to Device
 
-Push sends the icon list without editor row and column fields, so gaps close. Hearth reads the screen back. When the bundle ids, page count, or dock order do not match, it writes the previous layout again. A supervised device is the case where `setIconState` is known to stick. An unsupervised device often ignores it. The restore is the safety net either way.
+Send to Device writes the icon list without editor row and column fields, so gaps close. Hearth reads the screen back. When the bundle ids, page count, or dock order do not match, it writes the previous layout again. A supervised device is the case where `setIconState` is known to stick. An unsupervised device often ignores it. The restore is the safety net either way.

@@ -170,6 +170,32 @@ class MoveTests(unittest.TestCase):
         self.assertEqual(view["dock"][0]["target"], "at:dock:0")
         self.assertEqual(view["dock"][2]["target"], "at:dock:end")
 
+    def test_folder_page_count_is_two_only_when_a_second_page_has_icons(self):
+        icons = [app(f"com.example.app{i}", f"App {i}") for i in range(10)]
+        many = {
+            "listType": "folder",
+            "displayName": "Tools",
+            "iconLists": [icons[:9], icons[9:]],
+        }
+        view = build_view([[], [many]])
+        tile = view["pages"][0]["tiles"][0]
+        self.assertEqual(tile["kind"], "folder")
+        self.assertEqual(tile["pageCount"], 2)
+        self.assertEqual(tile["count"], 10)
+
+        one = {"listType": "folder", "displayName": "One", "iconLists": [icons[:3], []]}
+        view = build_view([[], [one, app("com.example.solo", "Solo")]])
+        self.assertEqual(view["pages"][0]["tiles"][0]["pageCount"], 1)
+        self.assertEqual(view["pages"][0]["tiles"][1]["pageCount"], 0)
+
+        docked = {
+            "listType": "folder",
+            "displayName": "Docked",
+            "iconLists": [icons[:9], icons[9:]],
+        }
+        view = build_view([[docked], []])
+        self.assertEqual(view["dock"][0]["pageCount"], 2)
+
     def test_drop_on_an_empty_cell_leaves_the_gap(self):
         first = app("a", "A")
         second = app("b", "B")

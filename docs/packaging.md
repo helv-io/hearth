@@ -10,7 +10,7 @@ The spec collects PySide6 and pymobiledevice3. QML is unpacked beside the frozen
 
 ## Linux Flatpak
 
-The manifest is `packaging/flatpak/io.helv.Hearth.yml`. The runtime is `org.kde.Platform` 6.10, which supplies Qt 6. The release job uses the matching `ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10` image, because that image is what actually contains `flatpak-builder`. pip installs Hearth and its dependencies into the sandbox. The finish arguments open Wayland, a fallback X11 socket, the network (icon downloads and Grok sign-in), USB, and the host usbmux sockets at `/run/usbmuxd` and `/var/run/usbmuxd`.
+The manifest is `packaging/flatpak/io.helv.Hearth.yml`. The runtime is `org.kde.Platform` 6.10, which supplies Qt 6. The release job uses the matching `ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10` image, because that image is what actually contains `flatpak-builder`. pip installs Hearth and its dependencies into the sandbox. The finish arguments open Wayland, a fallback X11 socket, the network (icon downloads and Grok sign-in), USB, and the host usbmux socket at `/run/usbmuxd`. On Arch, `/var/run` is a symlink to `/run`, and a second permission on `/var/run/usbmuxd` makes bubblewrap refuse to start the sandbox. `--talk-name=org.freedesktop.Flatpak` lets the install button run `flatpak-spawn --host pkexec …` so usbmuxd is installed on the host. That command is chosen by Hearth. It is not a free shell.
 
 Install a bundle with:
 
@@ -19,7 +19,7 @@ flatpak install --user hearth.flatpak
 flatpak run io.helv.Hearth
 ```
 
-The host still needs `usbmuxd`. The sandbox does not run its own copy.
+The host still needs `usbmuxd`. The sandbox does not run its own copy. The in-app button installs it on the host when it is missing.
 
 If Flathub retires the 6.10 runtime, bump `runtime-version`, the container image tag, and the cache key together.
 

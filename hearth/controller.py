@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import asyncio
 from copy import deepcopy
-from threading import Event
+from threading import Event, Thread
 
 from PySide6.QtCore import QObject, QThread, Property, Signal, Slot, QUrl
 from PySide6.QtGui import QDesktopServices
 
-from hearth import ai, device, grok_sso, icons, layout, presets, screens, settings
+from hearth import ai, device, drivers, grok_sso, icons, layout, presets, screens, settings
 
 
 class _Job(QThread):
@@ -23,6 +23,7 @@ class _Job(QThread):
     proposed = Signal(object)
     grok_code = Signal(object)
     grok_finished = Signal(str)
+    driver_done = Signal(str)
 
     def __init__(self, kind: str, cancel: Event, **payload):
         super().__init__()
@@ -67,6 +68,8 @@ class _Job(QThread):
                     "verification_uri_complete": flow.get("verification_uri_complete") or "",
                 })
                 self.grok_finished.emit(grok_sso.poll(flow, self.cancel))
+            elif self.kind == "driver":
+                self.driver_done.emit(drivers.install())
         except Exception as exc:
             self.failed.emit(device.friendly(exc))
 
@@ -83,6 +86,9 @@ class Controller(QObject):
     iconRevChanged = Signal()
     grokChanged = Signal()
     busyChanged = Signal()
+    driverChanged = Signal()
+    linkChanged = Signal()
+    scanned = Signal(int, str, bool)
 
     def __init__(self):
         super().__init__()
@@ -95,7 +101,7 @@ class Controller(QObject):
         self._redo: list = []
         self._dirty = False
         self._busy = False
-        self._status = "Plug in an iPhone or iPad and pull its home screen."
+        self._status = "Plug in an iPhone or iPad."
         self._error = False
         self._device_name = ""
         self._model_name = ""
@@ -114,8 +120,17 @@ class Controller(QObject):
         self._proposal_base = None
         self._grok_code = ""
         self._grok_link = ""
+        self._driver = drivers.status()
+        self._link = ""
+        self._pending_link = ""
+        self._pending_hits = 0
+        self._scan_gen = 0
         self._cancel = Event()
         self._job: _Job | None = None
+        self.scanned.connect(self._on_scanned)
+        if self._driver.needed and not self._driver.ready:
+            self._status = self._driver.headline
+            self._error = True
 
     # --- properties -----------------------------------------------------
 
@@ -162,6 +177,26 @@ class Controller(QObject):
 
     deviceName = Property(str, _device, notify=layoutChanged)
 
+    def _link_label(self):
+        if self._link == "many":
+            return "More than one device"
+        if self._link == "one":
+            return "Device connected"
+        return "Nothing connected yet"
+
+    linkLabel = Property(str, _link_label, notify=linkChanged)
+
+    def _link_detail(self):
+        if self._device_name:
+            return ""
+        if self._link == "many":
+            return "Leave one plugged in."
+        if self._link == "one":
+            return "Found one device."
+        return ""
+
+    linkDetail = Property(str, _link_detail, notify=linkChanged)
+
     def _subtitle(self):
         bits = []
         if self._model_name:
@@ -174,6 +209,31 @@ class Controller(QObject):
         return " · ".join(bits)
 
     subtitle = Property(str, _subtitle, notify=layoutChanged)
+
+    def _driver_needed(self):
+        return self._driver.needed and not self._driver.ready
+
+    driverNeeded = Property(bool, _driver_needed, notify=driverChanged)
+
+    def _driver_headline(self):
+        return self._driver.headline
+
+    driverHeadline = Property(str, _driver_headline, notify=driverChanged)
+
+    def _driver_detail(self):
+        return self._driver.detail
+
+    driverDetail = Property(str, _driver_detail, notify=driverChanged)
+
+    def _driver_action(self):
+        return self._driver.action
+
+    driverAction = Property(str, _driver_action, notify=driverChanged)
+
+    def _driver_manual(self):
+        return self._driver.manual
+
+    driverManual = Property(str, _driver_manual, notify=driverChanged)
 
     def _wall(self):
         return self._wallpaper
@@ -404,6 +464,80 @@ class Controller(QObject):
     # --- phone ----------------------------------------------------------
 
     @Slot()
+    def checkDevice(self):
+        """Background presence check. A newly seen single device is read."""
+        self._start_scan(False)
+
+    @Slot()
+    def refreshDevice(self):
+        """Look again, and only report. Does not replace the canvas."""
+        self._start_scan(True)
+
+    def _start_scan(self, manual: bool):
+        if self._busy:
+            return
+        self._scan_gen += 1
+        gen = self._scan_gen
+        Thread(target=self._scan_thread, args=(gen, manual), daemon=True).start()
+
+    def _scan_thread(self, gen: int, manual: bool):
+        self.scanned.emit(gen, device.presence(), manual)
+
+    @Slot(int, str, bool)
+    def _on_scanned(self, gen: int, kind: str, manual: bool):
+        if gen != self._scan_gen:
+            return
+        if manual:
+            self._apply_link(kind, read=False)
+            if kind == "one":
+                self._set_status("One device is connected.", False)
+            elif kind == "many":
+                self._set_status("More than one device is connected. Leave one plugged in.", True)
+            else:
+                self._set_status("No device is connected.", True)
+            return
+        if kind == self._link:
+            self._pending_link = ""
+            self._pending_hits = 0
+            return
+        if kind != self._pending_link:
+            self._pending_link = kind
+            self._pending_hits = 0
+        self._pending_hits += 1
+        # A device shows up on the first sighting. A dropout has to repeat, so a
+        # one-off usbmux miss does not read the phone a second time.
+        needed = 1 if kind == "one" else 2
+        if self._pending_hits < needed:
+            return
+        self._pending_link = ""
+        self._pending_hits = 0
+        previous = self._link
+        self._apply_link(kind, read=kind == "one" and previous != "one" and not self._dirty)
+
+    def _apply_link(self, kind: str, read: bool):
+        self._link = kind
+        self.linkChanged.emit()
+        if read and not self._busy:
+            self.pull()
+
+    @Slot()
+    def installDriver(self):
+        report = drivers.status()
+        self._driver = report
+        self.driverChanged.emit()
+        if not report.needed or report.ready:
+            self._set_status("USB support is already in place.", False)
+            return
+        if report.url and not report.command:
+            QDesktopServices.openUrl(QUrl(report.url))
+            self._set_status("Opened the Apple Devices page. Read from Device after it finishes.", False)
+            return
+        if not report.command:
+            self._set_status(report.detail, True)
+            return
+        self._start(_Job("driver", self._cancel))
+
+    @Slot()
     def pull(self):
         self._start(_Job("pull", self._cancel))
 
@@ -435,7 +569,7 @@ class Controller(QObject):
         dock_count = len(state[0]) if isinstance(state[0], list) else 0
         self._use_screen(screens.from_note(device.load_note(path)), dock_count)
         self._replace_state(state, dirty=True)
-        self._set_status("Opened a saved version. Push sends it to the device.", False)
+        self._set_status("Opened a saved version. Send to Device writes it.", False)
 
     # --- settings and organizer -----------------------------------------
 
@@ -474,7 +608,7 @@ class Controller(QObject):
     @Slot(str)
     def propose(self, instruction: str):
         if not self._state or not any(self._state[1:]):
-            self._set_status("Pull a home screen first.", True)
+            self._set_status("Read a home screen first.", True)
             return
         self._start(_Job(
             "propose",
@@ -502,7 +636,7 @@ class Controller(QObject):
         self._open = None
         self.proposalChanged.emit()
         self._note_edit()
-        self._set_status("Applied on the canvas. Push sends it to the phone.", False)
+        self._set_status("Applied on the canvas. Send to Device writes it.", False)
 
     @Slot()
     def discardProposal(self):
@@ -534,7 +668,7 @@ class Controller(QObject):
 
     def _note_edit(self):
         self._rebuild()
-        self._set_status("Edited on the canvas. Push sends it to the phone.", False)
+        self._set_status("Edited on the canvas. Send to Device writes it.", False)
 
     def _replace_state(self, state, dirty: bool):
         self._state = state
@@ -580,6 +714,7 @@ class Controller(QObject):
         job.proposed.connect(self._on_proposed)
         job.grok_code.connect(self._on_grok_code)
         job.grok_finished.connect(self._on_grok_finished)
+        job.driver_done.connect(self._on_driver)
         job.finished.connect(lambda: self._set_busy(False))
         self._set_busy(True)
         if job.kind == "pull":
@@ -590,13 +725,25 @@ class Controller(QObject):
             self._set_status("Asking the model…", False)
         elif job.kind == "grok":
             self._set_status("Starting Grok sign-in…", False)
+        elif job.kind == "driver":
+            self._set_status("Installing USB support…", False)
         job.start()
 
     def _on_failed(self, text: str):
         self._grok_code = ""
         self._grok_link = ""
         self.grokChanged.emit()
+        self._remember_driver()
         self._set_status(text, True)
+
+    def _on_driver(self, text: str):
+        self._remember_driver()
+        ready = self._driver.ready or not self._driver.needed
+        self._set_status(text, not ready)
+
+    def _remember_driver(self):
+        self._driver = drivers.status()
+        self.driverChanged.emit()
 
     def _on_pulled(self, meta: dict):
         state = meta.get("state")
@@ -615,7 +762,7 @@ class Controller(QObject):
         self._versions = device.list_versions()
         self.versionsChanged.emit()
         count = len(layout.idents(state))
-        message = f"Pulled {count} icons."
+        message = f"Read {count} icons."
         if self._screen.warning:
             message = f"{self._screen.warning} {message}"
         self._set_status(message, False)

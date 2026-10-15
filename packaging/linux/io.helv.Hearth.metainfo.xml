@@ -6,8 +6,9 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <description>
-    <p>Pull a home screen over USB, rearrange pages, folders, widgets, and the dock, then push it back.</p>
-    <p>Works with a current iPhone or iPad. A push is read back, and the previous layout is restored when the device does not keep the edit.</p>
+    <p>Read a home screen over USB, rearrange pages, folders, widgets, and the dock, then send it back.</p>
+    <p>Works with a current iPhone or iPad. A send is read back, and the previous layout is restored when the device does not keep the edit.</p>
+    <p>On Linux and Windows, Hearth installs the USB service when it is missing. macOS already has it.</p>
   </description>
   <launchable type="desktop-id">io.helv.Hearth.desktop</launchable>
   <url type="homepage">https://github.com/helv-io/hearth</url>

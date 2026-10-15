@@ -112,6 +112,15 @@ def flatten_folder(folder: Item) -> list[Item]:
     return icons
 
 
+def folder_page_count(folder: Item) -> int:
+    """Pages that actually hold an icon. An empty trailing page does not count."""
+    count = 0
+    for page in folder.get("iconLists") or []:
+        if isinstance(page, list) and any(isinstance(icon, dict) for icon in page):
+            count += 1
+    return count
+
+
 def walk_icons(state: State) -> list[Item]:
     found: list[Item] = []
     for page in state:
@@ -798,9 +807,11 @@ def _after_target(page_index: int, row: int, col: int, width: int, height: int, 
 def _tile(item: Item, source: str, place: dict) -> dict:
     preview: list[str] = []
     count = 0
+    page_count = 0
     if is_folder(item):
         icons = flatten_folder(item)
         count = len(icons)
+        page_count = folder_page_count(item)
         preview = [ident(icon) for icon in icons[:9]]
     names = [label(item)]
     if is_folder(item):
@@ -816,6 +827,7 @@ def _tile(item: Item, source: str, place: dict) -> dict:
         "w": place["w"],
         "h": place["h"],
         "count": count,
+        "pageCount": page_count,
         "preview": preview,
         "letter": _letter(label(item)),
     }
