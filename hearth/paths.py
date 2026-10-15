@@ -76,6 +76,13 @@ def package_dir() -> Path:
     return Path(__file__).resolve().parent
 
 
+def window_icon_path() -> Path:
+    """The picture for the window and Dock icon. A Mac icon has clear space around
+    the tile and transparent corners, so macOS gets its own picture."""
+    name = "hearth-macos.png" if sys.platform == "darwin" else "hearth.png"
+    return resource_dir("qml") / name
+
+
 def resource_dir(name: str) -> Path:
     """A directory shipped inside the package, including a frozen build."""
     bundled = package_dir() / name

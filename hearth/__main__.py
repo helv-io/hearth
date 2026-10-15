@@ -14,7 +14,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from hearth import __version__
 from hearth.controller import Controller
 from hearth.net import secure_context
-from hearth.paths import resource_dir
+from hearth.paths import resource_dir, window_icon_path
 
 
 def _say(text: str, report: str = "") -> None:
@@ -107,7 +107,7 @@ def main() -> int:
     app.setApplicationName("Hearth")
     app.setOrganizationName("hearth")
     app.setApplicationVersion(__version__)
-    icon = resource_dir("qml") / "hearth.png"
+    icon = window_icon_path()
     if icon.is_file():
         app.setWindowIcon(QIcon(str(icon)))
     font = QFont("Noto Sans")

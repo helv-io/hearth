@@ -66,8 +66,50 @@ jobs:
           pip install --only-binary=:all: "PySide6>=6.6" "pymobiledevice3>=4.0" pyinstaller
           pip install --no-deps -e .
           pip list 2>/dev/null | grep -i -E "^(pyside6|pymobiledevice3|cryptography|pyinstaller) "
+      # The app icon. Without an .icns in the bundle, Finder and the Dock show the
+      # generic script icon. This builds every size from the 1024 px master.
+      - name: Make the app icon
+        run: |
+          packaging/macos/make-icns.sh
+          file packaging/macos/Hearth.icns
       - name: Build
         run: pyinstaller packaging/pyinstaller/hearth.spec
+      - name: Check that the app has its icon
+        run: |
+          app=dist/Hearth.app
+          plist="$app/Contents/Info.plist"
+          plutil -lint "$plist"
+          icon_name="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$plist")"
+          echo "CFBundleIconFile is $icon_name"
+          test -n "$icon_name"
+          # The key may be written with or without the extension. macOS accepts both.
+          icon="$app/Contents/Resources/${icon_name%.icns}.icns"
+          ls -l "$icon"
+          test -s "$icon"
+          file -b "$icon" | grep -q "Mac OS X icon"
+          # The bundled file must be the one we made, not a placeholder.
+          cmp "$icon" packaging/macos/Hearth.icns
+          # It must hold every size. Unpack it again and count them.
+          rm -rf "$RUNNER_TEMP/check.iconset"
+          iconutil -c iconset "$icon" -o "$RUNNER_TEMP/check.iconset"
+          ls "$RUNNER_TEMP/check.iconset"
+          for size in 16 32 128 256 512; do
+            test -s "$RUNNER_TEMP/check.iconset/icon_${size}x${size}.png"
+            test -s "$RUNNER_TEMP/check.iconset/icon_${size}x${size}@2x.png"
+          done
+          test "$(sips -g pixelWidth "$RUNNER_TEMP/check.iconset/icon_512x512@2x.png" | awk '/pixelWidth/ {print $2}')" = 1024
+          # Draw it to a picture, so the real icon can be looked at from the artifact.
+          mkdir -p icon-check
+          sips -s format png "$icon" --out "icon-check/Hearth-icon-$ARCH.png" >/dev/null
+          cp "$RUNNER_TEMP/check.iconset/icon_256x256@2x.png" "icon-check/Hearth-icon-$ARCH-512.png"
+          qlmanage -t -s 512 -o icon-check "$app" >/dev/null 2>&1 || echo "Quick Look could not draw the app icon"
+          ls -l icon-check
+          echo "- app icon: $icon_name, all sizes present" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: icon-check-${{ matrix.arch }}
+          path: icon-check
+          if-no-files-found: error
       - name: Check that the app is built for this kind of Mac
         run: |
           du -sh dist/Hearth.app
@@ -123,7 +165,7 @@ jobs:
       - name: Make the disk image
         run: |
           pip install "dmgbuild>=1.6,<2"
-          dmgbuild -s packaging/macos/dmg-settings.py -D app=dist/Hearth.app Hearth "$DMG"
+          dmgbuild -s packaging/macos/dmg-settings.py -D app=dist/Hearth.app -D icon=packaging/macos/Hearth.icns Hearth "$DMG"
           ls -l "$DMG"
           echo "- $DMG is $(du -h "$DMG" | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
       - name: Open the disk image and start the app from it
@@ -136,6 +178,13 @@ jobs:
           test -d /Volumes/Hearth/Hearth.app
           test "$(readlink /Volumes/Hearth/Applications)" = /Applications
           test -f /Volumes/Hearth/.DS_Store
+          # The app inside the image carries its icon, and the disk has its own.
+          test -s /Volumes/Hearth/Hearth.app/Contents/Resources/Hearth.icns
+          test -s /Volumes/Hearth/.VolumeIcon.icns
+          cmp /Volumes/Hearth/.VolumeIcon.icns packaging/macos/Hearth.icns
+          # Finder draws that file as the disk's icon only when the disk's custom-icon
+          # flag is set. It is shown here for the log. The files above are the check.
+          xattr -px com.apple.FinderInfo /Volumes/Hearth 2>/dev/null || echo "no Finder info on the mounted disk"
           test "$(lipo -archs /Volumes/Hearth/Hearth.app/Contents/MacOS/hearth)" = "$ARCH"
           expected="$(sed -n 's/^hearth //p' "$RUNNER_TEMP/version.txt")"
           shown="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Volumes/Hearth/Hearth.app/Contents/Info.plist)"

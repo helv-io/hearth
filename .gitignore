@@ -10,6 +10,8 @@ build/
 repo/
 *.flatpak
 *.dmg
+packaging/macos/Hearth.icns
+packaging/macos/Hearth.iconset/
 *.AppImage
 .DS_Store
 Thumbs.db

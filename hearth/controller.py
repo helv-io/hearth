@@ -93,6 +93,19 @@ class _UpdateJob(QThread):
         self.found.emit(updates.offer())
 
 
+class _UpdateNowJob(QThread):
+    """The Check for updates button. It never raises. It reports newer, current or failed."""
+
+    done = Signal(str, str)
+
+    def run(self):
+        self.done.emit(*updates.check_now())
+
+
+UPDATE_CURRENT_TEXT = "You're up to date."
+UPDATE_FAILED_TEXT = "Couldn't check right now. Try again."
+
+
 class Controller(QObject):
     layoutChanged = Signal()
     folderChanged = Signal()
@@ -155,6 +168,9 @@ class Controller(QObject):
         self._update_state = updates.load_state()
         self._update_version = ""
         self._update_job: _UpdateJob | None = None
+        self._update_now_job: _UpdateNowJob | None = None
+        self._update_checking = False
+        self._update_result = ""
         self.scanned.connect(self._on_scanned)
         if self._driver.needed and not self._driver.ready:
             self._status = self._driver.headline
@@ -417,9 +433,50 @@ class Controller(QObject):
 
     checkUpdates = Property(bool, _check_updates, notify=updateChanged)
 
+    def _update_checking_now(self):
+        return self._update_checking
+
+    updateChecking = Property(bool, _update_checking_now, notify=updateChanged)
+
+    def _update_result_text(self):
+        return self._update_result
+
+    updateResult = Property(str, _update_result_text, notify=updateChanged)
+
+    @Slot()
+    def checkForUpdatesNow(self):
+        """The Settings button. Asks now, even when the startup check is off or the
+        version was skipped. Only the button shows busy. The rest of the app stays free."""
+        if self._update_checking:
+            return
+        self._update_checking = True
+        self._update_result = ""
+        self.updateChanged.emit()
+        job = _UpdateNowJob()
+        job.done.connect(self._on_update_now)
+        self._update_now_job = job
+        job.start()
+
+    def _on_update_now(self, status: str, version: str):
+        self._update_checking = False
+        if status == updates.NEWER and version:
+            self._update_version = version
+            self._update_result = f"Hearth {version} is available."
+        elif status == updates.CURRENT:
+            self._update_result = UPDATE_CURRENT_TEXT
+        else:
+            self._update_result = UPDATE_FAILED_TEXT
+        self.updateChanged.emit()
+
+    @Slot()
+    def clearUpdateResult(self):
+        if self._update_result and not self._update_checking:
+            self._update_result = ""
+            self.updateChanged.emit()
+
     @Slot()
     def startUpdateCheck(self):
-        """Once, at startup. Does nothing when the person turned the check off."""
+        """At every start. Does nothing when the person turned the check off."""
         if self._update_job is not None or not self._check_updates():
             return
         job = _UpdateJob()
@@ -809,8 +866,9 @@ class Controller(QObject):
                 # A request that will not return must not keep the window from closing.
                 job.terminate()
                 job.wait(SHUTDOWN_WAIT_MS)
-        if self._update_job is not None and self._update_job.isRunning():
-            self._update_job.wait(updates.TIMEOUT_SECONDS * 1000 + 1000)
+        for job in (self._update_job, self._update_now_job):
+            if job is not None and job.isRunning():
+                job.wait(updates.TIMEOUT_SECONDS * 1000 + 1000)
 
     # --- internals ------------------------------------------------------
 

@@ -62,9 +62,11 @@ Tests never open a device. The Makefile sets `QT_QPA_PLATFORM=offscreen`.
 
 When Hearth starts, it asks GitHub whether a newer version has been released. If there is one, a small card in the corner says so. Open download page takes you to the newest release in your browser. Not now hides the card until the next start. Skip this version hides it for good, until an even newer version comes out.
 
-Hearth asks at most once a day, and it says nothing when you are offline or GitHub does not answer. That one request to GitHub is the only thing Hearth sends on its own. It has no device information and nothing that identifies you. There is no tracking. Hearth also contacts the model provider you choose, but only when you ask it to organize, and your icon downloads and Grok sign-in use the internet when you use them.
+Hearth asks every time it starts, and it says nothing when you are offline or GitHub does not answer. That one request to GitHub is the only thing Hearth sends on its own. It has no device information and nothing that identifies you. There is no tracking. Hearth also contacts the model provider you choose, but only when you ask it to organize, and your icon downloads and Grok sign-in use the internet when you use them.
 
-To turn the check off, open Settings and clear Check for updates on startup. Hearth never installs anything by itself.
+To check right now, open Settings and press Check for updates. It says You're up to date, or shows the same card for the newer version, even one you skipped. If it cannot reach GitHub, it says so and you can try again. That button works even when the startup check is off.
+
+To turn the startup check off, open Settings and clear Check for updates on startup. Hearth never installs anything by itself.
 
 ## Connect
 

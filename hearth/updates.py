@@ -1,7 +1,8 @@
-"""Is there a newer Hearth? One request to GitHub, at most once a day.
+"""Is there a newer Hearth? One request to GitHub at every start, and one when asked.
 
-The only thing sent is that request. It carries no device data and no id. A
-failure of any kind, offline, rate limited or an odd answer, means no popup.
+The only thing sent is that request. It carries no device data and no id. At
+start, a failure of any kind, offline, rate limited or an odd answer, means no
+popup. When the person asks with the button, a failure is reported in plain words.
 """
 
 from __future__ import annotations
@@ -23,7 +24,6 @@ TAGS_URL = f"https://api.github.com/repos/{REPO}/tags?per_page=100"
 DOWNLOAD_PAGE = f"https://github.com/{REPO}/releases/latest"
 
 TIMEOUT_SECONDS = 5
-CHECK_EVERY_SECONDS = 24 * 60 * 60
 
 # Semantic versions only: major.minor.patch, an optional pre-release such as
 # -rc1 or rc1, and optional build metadata after a plus sign.
@@ -103,7 +103,7 @@ def _path():
 
 
 def load_state() -> dict:
-    state = {"enabled": True, "last_check": 0.0, "latest": "", "skipped": ""}
+    state = {"enabled": True, "latest": "", "skipped": ""}
     try:
         stored = json.loads(_path().read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -112,9 +112,6 @@ def load_state() -> dict:
         return state
     if isinstance(stored.get("enabled"), bool):
         state["enabled"] = stored["enabled"]
-    last = stored.get("last_check")
-    if isinstance(last, (int, float)) and not isinstance(last, bool):
-        state["last_check"] = float(last)
     for key in ("latest", "skipped"):
         if isinstance(stored.get(key), str):
             state[key] = stored[key]
@@ -169,35 +166,25 @@ def fetch_tags() -> list[str]:
     return [row["name"] for row in data if isinstance(row, dict) and isinstance(row.get("name"), str)]
 
 
-def due(state: dict, now: float) -> bool:
-    last = state.get("last_check", 0.0)
-    return last > now or now - last >= CHECK_EVERY_SECONDS
+def offer(current: str | None = None, fetch=None) -> str:
+    """The version to tell the person about at start, or an empty string.
 
-
-def offer(current: str = __version__, now: float | None = None, fetch=None) -> str:
-    """The version to tell the person about, or an empty string.
-
-    Asks GitHub when the last answer is a day old. Otherwise the saved answer is
-    used, so a person who said Not now sees it again next start without a request.
+    Asks GitHub every time. When it cannot answer, the last answer it got is used,
+    so a person who said Not now still sees it. A version they skipped stays quiet.
     """
-    now = time.time() if now is None else now
+    current = __version__ if current is None else current
     fetch = fetch or fetch_tags
     try:
         state = load_state()
         if not state["enabled"] or is_dev_build(current):
             return ""
-        if due(state, now):
-            try:
-                latest = newest_release(fetch())
-            except Unreachable:
-                pass  # offline: do not count it, ask again next start
-            except Exception:
-                state["last_check"] = now  # rate limit or a bad answer: wait a day
-                save_state(state)
-            else:
-                state["last_check"] = now
-                if latest is not None:
-                    state["latest"] = str(latest)
+        try:
+            latest = newest_release(fetch())
+        except Exception:
+            pass  # offline, rate limited or an odd answer: say nothing
+        else:
+            if latest is not None:
+                state["latest"] = str(latest)
                 save_state(state)
         latest_text = state["latest"]
         if not latest_text or not is_newer(latest_text, current):
@@ -207,3 +194,31 @@ def offer(current: str = __version__, now: float | None = None, fetch=None) -> s
         return latest_text
     except Exception:
         return ""
+
+
+# What a check made on request found.
+NEWER = "newer"
+CURRENT = "current"
+FAILED = "failed"
+
+
+def check_now(current: str | None = None, fetch=None) -> tuple[str, str]:
+    """Ask right now, for the Check for updates button.
+
+    Returns (NEWER, version), (CURRENT, "") or (FAILED, ""). It ignores the startup
+    setting and a skipped version, because the person asked. It never raises.
+    """
+    current = __version__ if current is None else current
+    fetch = fetch or fetch_tags
+    try:
+        latest = newest_release(fetch())
+        if latest is None:
+            return FAILED, ""
+        state = load_state()
+        state["latest"] = str(latest)
+        save_state(state)
+        if is_newer(str(latest), current):
+            return NEWER, str(latest)
+        return CURRENT, ""
+    except Exception:
+        return FAILED, ""

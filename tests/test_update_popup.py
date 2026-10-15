@@ -1,6 +1,9 @@
+import json
 import tempfile
+import threading
 import time
 import unittest
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
@@ -22,7 +25,7 @@ def _wait(app, seconds):
         time.sleep(0.01)
 
 
-class UpdatePopupTests(unittest.TestCase):
+class _PopupBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._app = QGuiApplication.instance() or QGuiApplication([])
@@ -53,6 +56,8 @@ class UpdatePopupTests(unittest.TestCase):
         self.addCleanup(self._close, engine, controller)
         return controller, engine.rootObjects()[0]
 
+
+class UpdatePopupTests(_PopupBase):
     def test_no_popup_until_a_newer_version_is_found(self):
         controller, root = self.window()
         notice = root.findChild(object, "updateNotice")
@@ -155,6 +160,184 @@ class UpdatePopupTests(unittest.TestCase):
             _wait(self._app, 0.3)
         self.assertFalse(controller.updateAvailable)
         self.assertEqual(controller.status, before)
+
+
+class _FakeGitHub:
+    """A local server that answers like the tags list. It counts the requests."""
+
+    def __init__(self, tags=None, status=200):
+        self.tags = tags or []
+        self.status = status
+        self.requests = 0
+        self.gate = None
+        outer = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                outer.requests += 1
+                if outer.gate is not None:
+                    outer.gate.wait(10)
+                body = json.dumps([{"name": name} for name in outer.tags]).encode()
+                self.send_response(outer.status)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *args):
+                pass
+
+        self.server = HTTPServer(("127.0.0.1", 0), Handler)
+        self.url = f"http://127.0.0.1:{self.server.server_port}/tags"
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def close(self):
+        if self.gate is not None:
+            self.gate.set()
+        self.server.shutdown()
+        self.server.server_close()
+
+
+class CheckForUpdatesTests(_PopupBase):
+    """Every start asks, and the Settings button asks on request. Against a fake server."""
+
+    def github(self, *tags, status=200):
+        fake = _FakeGitHub(list(tags), status)
+        self.addCleanup(fake.close)
+        patcher = patch.object(updates, "TAGS_URL", fake.url)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        patcher = patch.object(updates, "__version__", "0.4.0")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return fake
+
+    def finish(self, controller, seconds=5):
+        end = time.monotonic() + seconds
+        while time.monotonic() < end and controller.updateChecking:
+            self._app.processEvents()
+            time.sleep(0.01)
+        _wait(self._app, 0.2)
+        self.assertFalse(controller.updateChecking)
+
+    def start_and_wait(self, controller):
+        controller.startUpdateCheck()
+        controller._update_job.wait(8000)
+        _wait(self._app, 0.3)
+
+    def test_every_start_asks_again(self):
+        fake = self.github("v0.4.0")
+        for expected in (1, 2, 3):
+            controller = Controller()
+            self.addCleanup(controller.shutdown)
+            self.start_and_wait(controller)
+            self.assertEqual(fake.requests, expected)
+
+    def test_a_release_made_since_the_last_start_shows_at_once(self):
+        fake = self.github("v0.4.0")
+        first = Controller()
+        self.addCleanup(first.shutdown)
+        self.start_and_wait(first)
+        self.assertFalse(first.updateAvailable)
+        fake.tags = ["v0.4.0", "v0.4.1"]
+        second = Controller()
+        self.addCleanup(second.shutdown)
+        self.start_and_wait(second)
+        self.assertEqual(second.updateVersion, "0.4.1")
+
+    def test_the_button_is_in_settings_and_says_what_it_does(self):
+        controller, root = self.window()
+        button = root.findChild(object, "checkUpdatesNow")
+        self.assertEqual(button.property("text"), "Check for updates")
+        self.assertTrue(button.property("enabled"))
+
+    def test_up_to_date(self):
+        self.github("v0.4.0", "v0.3.0")
+        controller, root = self.window()
+        controller.checkForUpdatesNow()
+        self.finish(controller)
+        self.assertEqual(controller.updateResult, "You're up to date.")
+        self.assertFalse(controller.updateAvailable)
+        self.assertEqual(root.findChild(object, "updateResult").property("text"), "You're up to date.")
+
+    def test_a_newer_version_shows_the_same_popup(self):
+        self.github("v0.4.0", "v0.5.0")
+        controller, root = self.window()
+        controller.checkForUpdatesNow()
+        self.finish(controller)
+        self.assertEqual(controller.updateVersion, "0.5.0")
+        notice = root.findChild(object, "updateNotice")
+        self.assertTrue(notice.property("visible"))
+        self.assertEqual(root.findChild(object, "updateTitle").property("text"), "Hearth 0.5.0 is available")
+        self.assertEqual(root.findChild(object, "updateDownload").property("text"), "Open download page")
+        self.assertEqual(controller.updateResult, "Hearth 0.5.0 is available.")
+
+    def test_a_skipped_version_still_shows_when_asked(self):
+        self.github("v0.5.0")
+        updates.skip("0.5.0")
+        controller, root = self.window()
+        self.start_and_wait(controller)
+        self.assertFalse(controller.updateAvailable, "skipped, so the start stays quiet")
+        controller.checkForUpdatesNow()
+        self.finish(controller)
+        self.assertEqual(controller.updateVersion, "0.5.0")
+        self.assertTrue(root.findChild(object, "updateNotice").property("visible"))
+
+    def test_it_asks_even_with_the_startup_check_off(self):
+        fake = self.github("v0.5.0")
+        controller, root = self.window()
+        controller.setCheckUpdates(False)
+        controller.checkForUpdatesNow()
+        self.finish(controller)
+        self.assertEqual(fake.requests, 1)
+        self.assertEqual(controller.updateVersion, "0.5.0")
+
+    def test_a_failure_says_so_in_plain_words(self):
+        self.github(status=403)
+        controller, root = self.window()
+        controller.checkForUpdatesNow()
+        self.finish(controller)
+        self.assertEqual(controller.updateResult, "Couldn't check right now. Try again.")
+        self.assertFalse(controller.updateAvailable)
+
+    def test_no_connection_says_the_same(self):
+        controller, root = self.window()
+        with patch.object(updates, "fetch_tags", side_effect=updates.Unreachable("offline")):
+            controller.checkForUpdatesNow()
+            self.finish(controller)
+        self.assertEqual(controller.updateResult, "Couldn't check right now. Try again.")
+
+    def test_the_button_shows_busy_while_the_rest_of_the_app_stays_free(self):
+        fake = self.github("v0.4.0")
+        fake.gate = threading.Event()
+        controller, root = self.window()
+        button = root.findChild(object, "checkUpdatesNow")
+        controller.checkForUpdatesNow()
+        _wait(self._app, 0.3)
+        self.assertTrue(controller.updateChecking)
+        self.assertEqual(button.property("text"), "Checking…")
+        self.assertFalse(button.property("enabled"))
+        self.assertFalse(controller.busy, "no app-wide lock")
+        controller.checkForUpdatesNow()  # a second press does nothing
+        fake.gate.set()
+        self.finish(controller)
+        self.assertEqual(fake.requests, 1)
+        self.assertEqual(button.property("text"), "Check for updates")
+        self.assertTrue(button.property("enabled"))
+
+    def test_the_result_is_cleared_when_settings_open_again(self):
+        self.github("v0.4.0")
+        controller, root = self.window()
+        controller.checkForUpdatesNow()
+        self.finish(controller)
+        self.assertNotEqual(controller.updateResult, "")
+        root.openSettings()
+        self.assertEqual(controller.updateResult, "")
+
+    def test_the_answer_is_not_hidden_behind_settings(self):
+        controller, root = self.window()
+        notice = root.findChild(object, "updateNotice")
+        self.assertGreater(notice.property("z"), 20)
 
 
 if __name__ == "__main__":

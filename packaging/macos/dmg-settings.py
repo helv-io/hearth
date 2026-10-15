@@ -12,6 +12,11 @@ import os
 application = defines.get("app", "dist/Hearth.app")  # noqa: F821
 appname = os.path.basename(application)
 
+# The icon of the mounted disk on the desktop and in the Finder sidebar. It is the
+# same file the app uses. Optional here so the layout can be read without it.
+if defines.get("icon"):  # noqa: F821
+    icon = defines["icon"]  # noqa: F821
+
 format = "UDZO"
 files = [application]
 symlinks = {"Applications": "/Applications"}
