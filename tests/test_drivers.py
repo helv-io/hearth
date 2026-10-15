@@ -91,3 +91,27 @@ class DriverPlanTests(unittest.TestCase):
         self.assertIn(report.kind, ("ready", "install", "start", "manual", "browse"))
         if report.ready:
             self.assertEqual(report.command, ())
+
+
+class QuietCommandTests(unittest.TestCase):
+    def test_windows_helpers_get_no_console_window(self):
+        from unittest import mock
+        from hearth import drivers
+
+        done = mock.Mock(returncode=0, stdout="", stderr="")
+        with mock.patch.object(drivers, "_system", return_value="Windows"), \
+                mock.patch.object(drivers.subprocess, "CREATE_NO_WINDOW", 0x08000000, create=True), \
+                mock.patch.object(drivers.subprocess, "run", return_value=done) as run:
+            drivers._run(("net", "start", "x"), timeout=5)
+            drivers._windows_service()
+        self.assertEqual(run.call_count, 2)
+        for call in run.call_args_list:
+            self.assertEqual(call.kwargs["creationflags"], 0x08000000)
+            self.assertIs(call.kwargs["stdin"], drivers.subprocess.DEVNULL)
+
+    def test_other_systems_pass_no_creation_flags(self):
+        from unittest import mock
+        from hearth import drivers
+
+        with mock.patch.object(drivers, "_system", return_value="Linux"):
+            self.assertNotIn("creationflags", drivers._quiet())

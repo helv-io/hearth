@@ -304,6 +304,7 @@ def _windows_service() -> tuple[bool, bool]:
             text=True,
             timeout=8,
             check=False,
+            **_quiet(),
         )
     except (OSError, subprocess.TimeoutExpired):
         return exe, False
@@ -323,7 +324,7 @@ def _ensure_windows_service() -> None:
         "powershell",
         "-NoProfile",
         "-Command",
-        "Start-Process -FilePath net -ArgumentList 'start \"Apple Mobile Device Service\"' -Verb RunAs -Wait",
+        "Start-Process -WindowStyle Hidden -FilePath net -ArgumentList 'start \"Apple Mobile Device Service\"' -Verb RunAs -Wait",
     ), timeout=180)
 
 
@@ -336,6 +337,17 @@ def _is_windows() -> bool:
     return _system() == "Windows"
 
 
+def _quiet() -> dict[str, object]:
+    """Keep a helper command from reading input or opening a console window.
+
+    Hearth on Windows has no console of its own, so each helper would flash one.
+    """
+    kwargs: dict[str, object] = {"stdin": subprocess.DEVNULL}
+    if _is_windows():
+        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+    return kwargs
+
+
 def _run(argv: tuple[str, ...] | list[str], timeout: int) -> tuple[int, str]:
     try:
         completed = subprocess.run(
@@ -344,6 +356,7 @@ def _run(argv: tuple[str, ...] | list[str], timeout: int) -> tuple[int, str]:
             text=True,
             timeout=timeout,
             check=False,
+            **_quiet(),
         )
     except subprocess.TimeoutExpired:
         return 124, "Timed out."
