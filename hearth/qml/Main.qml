@@ -739,10 +739,11 @@ ApplicationWindow {
                         font.pixelSize: 12
                     }
                     Button {
+                        objectName: "organizeButton"
                         width: parent.width
-                        text: controller.busy ? "Working…" : "Reorganize"
-                        enabled: !controller.busy
-                        onClicked: controller.propose(instruction.text)
+                        text: controller.organizeWaiting ? "Cancel" : (controller.busy ? "Working…" : "Reorganize")
+                        enabled: controller.organizeWaiting || !controller.busy
+                        onClicked: controller.organizeWaiting ? controller.cancelOrganize() : controller.propose(instruction.text)
                         background: Rectangle { radius: 10; color: !parent.enabled ? "#1C1C22" : (parent.down ? "#0060D0" : "#0A84FF") }
                         contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true }
                     }

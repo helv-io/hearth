@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.3 — 2026-10-15
+
+Organizing no longer fails just because the model is slow, and you can cancel it.
+
+- The model's answer is now streamed. Hearth gives up only when the model has gone quiet, not when the whole answer takes long. It waits 3 minutes for the first words, which covers a model that thinks first, and 1 minute between words after that. Every piece that arrives starts the wait again. Before, one flat two-minute limit failed any slow model, even one that was still writing. A 10 minute limit on a single answer remains as a safety net.
+- The status line shows how many characters have arrived, so a slow answer is visibly alive.
+- A failure says where it stopped and for how long, for example "The model did not answer for 3 minutes." or "The model went quiet for 1 minute partway through its answer."
+- A provider that cannot stream gets the same request without streaming, with no message.
+- Hearth now asks for low reasoning when it organizes, for providers that use chat completions. The job is structured JSON, so low is enough, and models that think first answer sooner. If a provider turns that down, Hearth asks again without it and remembers that for the rest of the run. Anthropic uses its own streaming and has no reasoning setting here.
+- Reorganize turns into Cancel while Hearth waits for the model. It stops the request at once, shows "Cancelled." with no error, and leaves the app free. A stopped request cannot post a late answer. Closing the window also stops it right away.
+- The answer that cannot be read as a layout now says "The model's answer could not be read as a layout. Try again."
+- Loading the model list keeps a short 30 second limit.
+
 ## 0.5.2 — 2026-10-15
 
 Cancelling the Grok sign-in no longer breaks the app, and the sidebar is quieter.
