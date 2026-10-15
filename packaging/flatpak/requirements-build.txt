@@ -1,0 +1,5 @@
+# Build tools, used only while building cryptography. They are compiled from
+# source and removed again at the end of the build. See update-sources.py.
+maturin==1.15.0
+setuptools-rust==1.13.0
+semantic-version==2.10.0

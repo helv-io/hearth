@@ -1,29 +1,72 @@
+# Flathub-ready manifest. Every source is fetched before the build starts and
+# pinned by checksum or commit, and the build itself runs with no network.
+#
+# The hearth source at the bottom is the working tree, which is what CI builds.
+# For Flathub, scripts/flathub-manifest.sh swaps it for the release tag and
+# commit. See docs/flathub.md.
 app-id: io.helv.Hearth
 runtime: org.kde.Platform
-runtime-version: "6.10"
+runtime-version: "6.11"
 sdk: org.kde.Sdk
 command: hearth
+# PySide6 comes from the Flathub base app. It is built against the KDE runtime,
+# so Qt is not bundled twice.
+base: io.qt.PySide.BaseApp
+base-version: "6.11"
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
 finish-args:
   - --share=ipc
   - --socket=wayland
   - --socket=fallback-x11
   - --device=dri
+  # Icon downloads, the optional organizer model and the daily update check.
   - --share=network
-  - --device=all
+  # The iPhone or iPad is reached through the host's usbmuxd service, which
+  # owns the USB side. The sandbox only needs its socket.
   - --filesystem=/run/usbmuxd
-  - --filesystem=/var/run/usbmuxd
-  - --talk-name=org.freedesktop.Flatpak
+cleanup-commands:
+  - /app/cleanup-BaseApp.sh
+  # The base app also carries what is needed to build PySide6 itself. A running
+  # Hearth needs none of it. (The manifest-level cleanup list cannot reach
+  # files that come from the base app, so these are removed here.)
+  - rm -rf /app/lib/libLLVM* /app/lib/libclang*
+  - rm -rf /app/lib/python*/site-packages/{shiboken6_generator*,pyproject_hooks*,patchelf*,distro*,pyopengl*,OpenGL}
+  - rm -rf /app/lib/python*/site-packages/PySide6/{include,typesystems,glue}
+build-options:
+  env:
+    # Hearth shows no web pages and plays no media, and it never uses numpy.
+    BASEAPP_REMOVE_WEBENGINE: "1"
+    BASEAPP_DISABLE_NUMPY: "1"
 modules:
+  - python3-maturin.yaml
+
+  - python3-requirements.yaml
+
+  - python3-pymobiledevice3.yaml
+
   - name: hearth
     buildsystem: simple
-    build-options:
-      build-args:
-        - --share=network
     build-commands:
-      - pip3 install --prefix=${FLATPAK_DEST} .
+      - pip3 install --verbose --exists-action=i --no-index --no-deps --no-build-isolation --prefix=${FLATPAK_DEST} .
       - install -Dm644 packaging/linux/io.helv.Hearth.desktop ${FLATPAK_DEST}/share/applications/io.helv.Hearth.desktop
       - install -Dm644 hearth/qml/hearth.png ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/io.helv.Hearth.png
       - install -Dm644 packaging/linux/io.helv.Hearth.metainfo.xml ${FLATPAK_DEST}/share/metainfo/io.helv.Hearth.metainfo.xml
+      - install -Dm644 LICENSE ${FLATPAK_DEST}/share/licenses/${FLATPAK_ID}/LICENSE
+      # The license files of every Python package, taken from what pip installed.
+      - |
+        for info in ${FLATPAK_DEST}/lib/python*/site-packages/*.dist-info; do
+          name=$(basename "$info" .dist-info)
+          for file in "$info"/licenses/* "$info"/LICENSE* "$info"/COPYING*; do
+            [ -f "$file" ] && install -Dm644 "$file" "${FLATPAK_DEST}/share/licenses/${FLATPAK_ID}/$name/$(basename "$file")"
+          done
+        done
+        true
     sources:
       - type: dir
         path: ../..
+        skip:
+          - .git
+          - .flatpak-builder
+          - build
+          - repo

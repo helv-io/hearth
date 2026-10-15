@@ -1,0 +1,12 @@
+# Direct run-time needs of the code Hearth imports from pymobiledevice3
+# (lockdown, usbmux and the SpringBoard service). pymobiledevice3 itself is a
+# separate module in the manifest, installed with --no-deps. See docs/flathub.md.
+construct==2.10.70
+cryptography==50.0.2
+ifaddr==0.2.0
+psutil==7.2.2
+Pygments==2.21.0
+questionary==2.1.1
+requests==2.34.2
+tqdm==4.70.1
+typing_extensions==4.16.0
