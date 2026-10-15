@@ -5,6 +5,7 @@
 - Cancelling the Grok sign-in no longer leaves Hearth stuck. Before, the sign-in waited for the full fifteen minutes with every button greyed out, and there was no way to stop it. Now the button turns into Cancel sign-in while Hearth waits. Cancel, closing Settings, switching to another provider, closing the window, or turning the sign-in down in the browser stops it at once. Nothing is shown as an error for a cancel, and you can start again right away.
 - Closing the window during a sign-in no longer risks a crash on the way out.
 - Real sign-in problems, such as an expired code or an account that cannot sign in, still show a plain message.
+- The sidebar no longer has a paragraph of instructions under the Read from Device and Send to Device buttons. The two gestures that are easy to miss, holding an icon at the side of the canvas to turn pages and pulling the folder handle down to close it, are now short hints that show when you hover. The README describes both. The README screenshots were retaken.
 
 ## 0.5.1 — 2026-10-15
 

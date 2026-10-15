@@ -438,18 +438,15 @@ ApplicationWindow {
                                     font.bold: true
                                 }
                                 MouseArea { anchors.fill: parent; onClicked: win.groupMode = index === 1 }
+                                HoverHandler { id: modeHover }
+                                ToolTip.visible: modeHover.hovered
+                                ToolTip.delay: 600
+                                ToolTip.text: index === 1
+                                    ? "Drop an app on another app to make a folder."
+                                    : "Drag an icon to move it. Hold it at the side of the canvas to turn pages."
                             }
                         }
                     }
-                }
-                Text {
-                    Layout.fillWidth: true
-                    wrapMode: Text.WordWrap
-                    text: groupMode
-                        ? "Drop an app on another app to make a folder. Move mode places icons beside each other and can leave empty cells."
-                        : "Drag an icon to move it. Drop it on an empty cell to leave a gap, or on the side of an icon to place it beside that icon. Drop on the middle of a folder to put it inside. Drag a name, or hold an icon at the side of the canvas, to slide the pages. Click a folder to open it underneath. Pull the folder handle down to close it."
-                    color: "#8E8E93"
-                    font.pixelSize: 11
                 }
 
                 Text { text: "Versions"; color: "#8E8E93"; font.pixelSize: 11; font.bold: true }

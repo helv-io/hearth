@@ -89,6 +89,10 @@ Rectangle {
         height: 22
         enabled: tray.reveal > 0.4
         preventStealing: true
+        hoverEnabled: true
+        ToolTip.visible: containsMouse && !pressed
+        ToolTip.delay: 600
+        ToolTip.text: "Pull down to close the folder."
         cursorShape: pressed ? Qt.ClosedHandCursor : Qt.SizeVerCursor
         property real originSceneY: 0
         property real originPull: 0

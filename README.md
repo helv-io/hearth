@@ -106,7 +106,7 @@ Pages keep empty cells. Drop an icon on an empty cell and the gap stays. Drop it
 
 Folders stay packed, nine apps to a page. Two or more pages show that count in a red badge on the folder. One page does not.
 
-Drag the icon to move it. Drag the name under it to slide between pages. Hold an icon at the side of the canvas and that page strip scrolls. That works on the home screen and inside the folder drawer. Click a folder to open it along the bottom. Pull the handle down to close it. Escape or a right-click cancels a drag.
+Drag the icon to move it. Drag the name under it to slide between pages. Move and Group sit under Undo and Redo. In Group, dropping an app on another app makes a folder. Hover over either one for a one-line hint. Hold an icon at the side of the canvas and that page strip scrolls. That works on the home screen and inside the folder drawer. Click a folder to open it along the bottom. Pull the handle down to close it. Escape or a right-click cancels a drag.
 
 ## Limits
 
