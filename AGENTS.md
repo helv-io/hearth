@@ -32,4 +32,4 @@ Do not pull, push, or restore a device from a test or an agent session unless th
 
 Every user-facing change updates `README.md` and `CHANGELOG.md` in the same commit.
 
-User-facing behavior goes in `README.md` and `docs/`. `docs/knowledge.md` is the accumulated behavior of the editor. Read it before changing layout, drag, folders, or the device connection. `CHANGELOG.md` gets a section for the version you ship. `TODO.md` and `ROADMAP.md` are the open work, not a scratch pad for the current edit.
+User-facing behavior goes in `README.md` and `docs/`. `docs/knowledge.md` is the accumulated behavior of the editor. Read it before changing layout, drag, folders, or the device connection. `CHANGELOG.md` gets a section for the version you ship. Work not yet released sits under `## Unreleased` at the top, and the version test skips that heading. `TODO.md` and `ROADMAP.md` are the open work, not a scratch pad for the current edit.

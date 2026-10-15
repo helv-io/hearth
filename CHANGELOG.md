@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Docs: README screenshots.
+
 ## 0.3.0 — 2026-10-15
 
 Hearth notices a device, sets up the USB service for you, and shows folder pages.

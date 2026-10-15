@@ -4,6 +4,24 @@ Desktop editor for an iPhone or iPad home screen. Linux, Windows, and macOS.
 
 Plug in one unlocked device. Hearth notices it and reads the layout. Rearrange it, then send it back. Every read and every send saves a version you can open with nothing plugged in.
 
+## Screenshots
+
+Sample home screen. The app icons belong to their owners and are shown only as a demonstration.
+
+![The Hearth window with a sample iPhone home screen: two pages of app icons, folders, widgets and a dock, with the saved versions and the Organize panel at the sides.](docs/images/editor.png)
+
+Click a folder and it opens along the bottom. A folder with more than one page shows every page.
+
+![A folder named Social open at the bottom of the window, showing its two pages of apps.](docs/images/folder.png)
+
+Describe the home screen you want and Hearth shows what it would move. Nothing changes until you press Apply.
+
+![The Organize panel with a short request typed in, and a suggestion that puts three apps into one folder, with Apply and Discard buttons.](docs/images/organizer.png)
+
+Every read and every send is saved. Open an older version from the list and the canvas shows it.
+
+![The list of saved versions on the left, and an earlier home screen open on the canvas.](docs/images/versions.png)
+
 ## Install
 
 Releases: https://github.com/helv-io/hearth/releases/latest

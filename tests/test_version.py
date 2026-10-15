@@ -21,7 +21,7 @@ class VersionTests(unittest.TestCase):
 
     def test_changelog_has_a_section_for_this_version(self):
         text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        first = re.search(r"^## (\S+)", text, re.MULTILINE)
+        first = re.search(r"^## (?!Unreleased\b)(\S+)", text, re.MULTILINE)
         self.assertIsNotNone(first)
         self.assertEqual(first.group(1), __version__)
 
