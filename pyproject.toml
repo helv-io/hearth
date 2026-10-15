@@ -1,6 +1,6 @@
 [project]
 name = "hearth"
-version = "0.5.2"
+version = "0.5.3"
 description = "Desktop editor for an iPhone or iPad home screen."
 readme = "README.md"
 license = { file = "LICENSE" }

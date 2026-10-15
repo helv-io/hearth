@@ -61,6 +61,8 @@ class _Job(QThread):
                     self.payload["state"],
                     adapter=preset["adapter"],
                     oauth=oauth,
+                    cancel=self.cancel,
+                    progress=lambda text: self.progressed.emit(text),
                 )
                 self.proposed.emit(proposal)
             elif self.kind == "grok":
@@ -76,6 +78,8 @@ class _Job(QThread):
                 self.grok_finished.emit(grok_sso.poll(flow, self.cancel))
             elif self.kind == "driver":
                 self.driver_done.emit(drivers.install())
+        except ai.Cancelled:
+            pass  # the person stopped it, and the controller already said so
         except Exception as exc:
             self.failed.emit(device.friendly(exc))
 
@@ -100,6 +104,7 @@ class Controller(QObject):
     iconReady = Signal(str, str)
     iconRevChanged = Signal()
     grokChanged = Signal()
+    organizeChanged = Signal()
     busyChanged = Signal()
     driverChanged = Signal()
     linkChanged = Signal()
@@ -146,6 +151,7 @@ class Controller(QObject):
         self._job: _Job | None = None
         self._retired: list[_Job] = []
         self._grok_waiting = False
+        self._organize_waiting = False
         self._update_state = updates.load_state()
         self._update_version = ""
         self._update_job: _UpdateJob | None = None
@@ -334,6 +340,11 @@ class Controller(QObject):
         return self._grok_waiting
 
     grokWaiting = Property(bool, _grok_waiting_now, notify=grokChanged)
+
+    def _organize_waiting_now(self):
+        return self._organize_waiting
+
+    organizeWaiting = Property(bool, _organize_waiting_now, notify=organizeChanged)
 
     def _key_hint(self):
         if self._provider() == "grok" and grok_sso.signed_in():
@@ -720,6 +731,25 @@ class Controller(QObject):
         self._set_status("Grok sign-in cancelled.", False)
 
     @Slot()
+    def cancelOrganize(self):
+        """Stop a request that is waiting for the model. The app is usable again before the worker has stopped."""
+        job = self._job
+        if not self._organize_waiting or job is None or job.kind != "propose":
+            return
+        job.cancel.set()
+        if job.isRunning():
+            self._retired.append(job)
+        self._job = None
+        self._end_organize()
+        self._set_busy(False)
+        self._set_status("Cancelled.", False)
+
+    def _end_organize(self):
+        if self._organize_waiting:
+            self._organize_waiting = False
+            self.organizeChanged.emit()
+
+    @Slot()
     def signOutGrok(self):
         grok_sso.sign_out()
         self._grok_code = ""
@@ -851,6 +881,9 @@ class Controller(QObject):
         self._grok_waiting = job.kind == "grok"
         if self._grok_waiting:
             self.grokChanged.emit()
+        self._organize_waiting = job.kind == "propose"
+        if self._organize_waiting:
+            self.organizeChanged.emit()
         self._set_busy(True)
         if job.kind == "pull":
             self._set_status("Reading the device…", False)
@@ -878,11 +911,13 @@ class Controller(QObject):
             self._retired.remove(job)
         if job is self._job:
             self._set_busy(False)
+            self._end_organize()
             if self._grok_waiting:
                 self._grok_waiting = False
                 self.grokChanged.emit()
 
     def _on_failed(self, text: str):
+        self._end_organize()
         self._grok_waiting = False
         self._grok_code = ""
         self._grok_link = ""
@@ -1017,6 +1052,7 @@ class Controller(QObject):
         self._set_status(f"{len(found)} models.", False)
 
     def _on_proposed(self, proposal: dict):
+        self._end_organize()
         summary = str(proposal.get("summary") or "Proposed a new arrangement.")
         preview, error = layout.apply_proposal(self._state, proposal)
         if error or preview is None:

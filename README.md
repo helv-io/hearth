@@ -122,6 +122,10 @@ Other providers: OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, Groq, Open
 
 The model proposes a layout. Apply puts it on the canvas. Send to Device is a separate step, and it asks first.
 
+Slow models are fine. The answer arrives as the model writes it, and the status line counts the characters so far. Hearth only gives up when the model has gone quiet: for 3 minutes before it starts writing, or for 1 minute once it has started. An answer that keeps coming is never cut off for being slow, apart from a 10 minute limit on the whole thing. A message says plainly where it stopped and for how long. A provider that cannot stream is asked again without streaming. Hearth asks for low reasoning, which is enough for this job and makes models that think first answer sooner. A provider that does not accept that is asked again without it, and Hearth remembers that until you close it.
+
+While Hearth waits, Reorganize becomes Cancel. It stops the request at once, says Cancelled, and the rest of Hearth works again straight away. Closing the window stops it too. Loading the model list in Settings is a short request and gives up after 30 seconds.
+
 ## License
 
 GPL-3.0-or-later. The text is in `LICENSE`. pymobiledevice3, which Hearth imports, uses the same license.
