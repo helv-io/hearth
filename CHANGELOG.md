@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Hearth checks at startup whether a newer version exists. A small card says "Hearth X.Y.Z is available" with Open download page, Not now and Skip this version. It asks GitHub at most once a day and stays quiet when you are offline. Settings has a Check for updates on startup box, on by default. That request is the only thing Hearth sends on its own, and it carries nothing about you or your device.
+
 ## 0.4.0 — 2026-10-15
 
 Windows is one small file, and the downloads are about a fifth of their old size.

@@ -41,6 +41,16 @@ The host still needs `usbmuxd`. The sandbox does not run its own copy. The in-ap
 
 If Flathub retires the 6.10 runtime, bump `runtime-version`, the container image tag, and the cache key together.
 
+## Update check
+
+`hearth/updates.py` is the whole feature. `REPO` is the one place that names the project, and the tag list URL and the download page are built from it. A test checks it against the Homepage in `pyproject.toml`.
+
+At startup `Controller.startUpdateCheck` runs `updates.offer` on a background thread. `offer` reads `updates.json` in the config directory. That file holds `enabled`, `last_check`, `latest` and `skipped`. It is separate from `settings.json` on purpose, because saving the model settings rewrites that file. When the saved answer is under a day old, no request is made and the saved `latest` is used, so a person who pressed Not now sees the card again at the next start without a request. Otherwise one unauthenticated request goes to `https://api.github.com/repos/helv-io/hearth/tags?per_page=100` with a 5 second timeout. The newest `vX.Y.Z` tag that is not a pre-release wins, compared by number, not by text, so `v0.10.0` beats `v0.9.0`. Other tags are ignored.
+
+A rate limit or any odd answer is remembered as a check, so Hearth waits a day. A missing connection is not, so it asks again at the next start. Nothing is ever shown for these. A build with no readable version, `0.0.0`, or a `dev` marker never asks. `--version` and `--selftest` never ask, and a test proves the self-test makes no network call.
+
+GitHub does not list tags in version order, and returns 100 at most. That is plenty while tags follow `vX.Y.Z`. If the project ever has more than 100 tags, read `releases/latest` instead.
+
 ## Local check
 
 ```bash

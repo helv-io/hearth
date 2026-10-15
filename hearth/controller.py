@@ -9,7 +9,7 @@ from threading import Event, Thread
 from PySide6.QtCore import QObject, QThread, Property, Signal, Slot, QUrl
 from PySide6.QtGui import QDesktopServices, QGuiApplication
 
-from hearth import ai, device, drivers, grok_sso, icons, layout, presets, screens, settings
+from hearth import __version__, ai, device, drivers, grok_sso, icons, layout, presets, screens, settings, updates
 
 
 class _Job(QThread):
@@ -74,6 +74,15 @@ class _Job(QThread):
             self.failed.emit(device.friendly(exc))
 
 
+class _UpdateJob(QThread):
+    """Asks for the newest version in the background. It never raises and never says why it failed."""
+
+    found = Signal(str)
+
+    def run(self):
+        self.found.emit(updates.offer())
+
+
 class Controller(QObject):
     layoutChanged = Signal()
     folderChanged = Signal()
@@ -88,6 +97,7 @@ class Controller(QObject):
     busyChanged = Signal()
     driverChanged = Signal()
     linkChanged = Signal()
+    updateChanged = Signal()
     scanned = Signal(int, str, bool)
 
     def __init__(self):
@@ -128,6 +138,9 @@ class Controller(QObject):
         self._scan_gen = 0
         self._cancel = Event()
         self._job: _Job | None = None
+        self._update_state = updates.load_state()
+        self._update_version = ""
+        self._update_job: _UpdateJob | None = None
         self.scanned.connect(self._on_scanned)
         if self._driver.needed and not self._driver.ready:
             self._status = self._driver.headline
@@ -357,6 +370,68 @@ class Controller(QObject):
         return self._proposal is not None
 
     proposalReady = Property(bool, _ready, notify=proposalChanged)
+
+    # --- updates --------------------------------------------------------
+
+    def _update_available(self):
+        return bool(self._update_version)
+
+    updateAvailable = Property(bool, _update_available, notify=updateChanged)
+
+    def _update_text(self):
+        return self._update_version
+
+    updateVersion = Property(str, _update_text, notify=updateChanged)
+
+    def _app_version(self):
+        return __version__
+
+    appVersion = Property(str, _app_version, constant=True)
+
+    def _check_updates(self):
+        return bool(self._update_state.get("enabled", True))
+
+    checkUpdates = Property(bool, _check_updates, notify=updateChanged)
+
+    @Slot()
+    def startUpdateCheck(self):
+        """Once, at startup. Does nothing when the person turned the check off."""
+        if self._update_job is not None or not self._check_updates():
+            return
+        job = _UpdateJob()
+        job.found.connect(self._on_update_found)
+        self._update_job = job
+        job.start()
+
+    def _on_update_found(self, version: str):
+        if not self._check_updates():
+            return
+        self._update_version = version
+        self.updateChanged.emit()
+
+    @Slot(bool)
+    def setCheckUpdates(self, enabled: bool):
+        self._update_state = updates.set_enabled(enabled)
+        if not enabled:
+            self._update_version = ""
+        self.updateChanged.emit()
+
+    @Slot()
+    def openUpdatePage(self):
+        QDesktopServices.openUrl(QUrl(updates.DOWNLOAD_PAGE))
+        self.dismissUpdate()
+
+    @Slot()
+    def dismissUpdate(self):
+        """Not now. It comes back the next time Hearth starts."""
+        self._update_version = ""
+        self.updateChanged.emit()
+
+    @Slot()
+    def skipUpdate(self):
+        if self._update_version:
+            self._update_state = updates.skip(self._update_version)
+        self.dismissUpdate()
 
     # --- editing --------------------------------------------------------
 
@@ -668,6 +743,8 @@ class Controller(QObject):
         self._cancel.set()
         if self._job is not None and self._job.isRunning():
             self._job.wait(4000)
+        if self._update_job is not None and self._update_job.isRunning():
+            self._update_job.wait(updates.TIMEOUT_SECONDS * 1000 + 1000)
 
     # --- internals ------------------------------------------------------
 

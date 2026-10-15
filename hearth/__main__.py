@@ -114,6 +114,7 @@ def main() -> int:
     if not engine.rootObjects():
         return 1
     app.aboutToQuit.connect(controller.shutdown)
+    controller.startUpdateCheck()
     return app.exec()
 
 
