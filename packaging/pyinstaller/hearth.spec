@@ -7,6 +7,8 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_all
 
 root = Path(SPECPATH).resolve().parents[1]
+sys.path.insert(0, str(root))
+from hearth import __version__
 pkg = root / "hearth"
 qml = pkg / "qml"
 
@@ -53,7 +55,7 @@ if sys.platform == "darwin":
         info_plist={
             "CFBundleName": "Hearth",
             "CFBundleDisplayName": "Hearth",
-            "CFBundleShortVersionString": "0.2.1",
+            "CFBundleShortVersionString": __version__,
             "NSHighResolutionCapable": True,
         },
     )
