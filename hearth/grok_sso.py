@@ -27,8 +27,11 @@ CLI_HEADERS = {
     "x-grok-client-version": "0.2.93",
 }
 DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
-
-_poll_cancel = Event()
+# Seconds one sign-in request may take. Short, so a cancel or a closed window is never kept waiting on the network.
+SIGN_IN_TIMEOUT = 5
+LOOKUP_TIMEOUT = 8
+FORM_TIMEOUT = 30
+DENIED = "denied"
 
 
 def _token_path():
@@ -44,11 +47,11 @@ def _fallback_endpoints() -> dict:
     }
 
 
-def endpoints() -> dict:
+def endpoints(timeout: float = LOOKUP_TIMEOUT) -> dict:
     found = _fallback_endpoints()
     try:
         request = Request(ISSUER + "/.well-known/openid-configuration", headers={"Accept": "application/json"})
-        with urlopen(request, timeout=8, context=secure_context()) as response:
+        with urlopen(request, timeout=timeout, context=secure_context()) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except (OSError, URLError, json.JSONDecodeError, TimeoutError):
         return found
@@ -66,7 +69,6 @@ def signed_in() -> bool:
 
 
 def sign_out() -> None:
-    _poll_cancel.set()
     _token_path().unlink(missing_ok=True)
 
 
@@ -84,8 +86,11 @@ def access_token() -> str:
 
 def start_device() -> dict:
     """Begin a device-code sign-in. The returned dict includes the device code; do not show that field."""
-    _poll_cancel.clear()
-    status, payload = _post_form(endpoints()["device"], {"client_id": CLIENT_ID, "scope": SCOPES})
+    status, payload = _post_form(
+        endpoints(SIGN_IN_TIMEOUT)["device"],
+        {"client_id": CLIENT_ID, "scope": SCOPES},
+        SIGN_IN_TIMEOUT,
+    )
     flow = _device_from_payload(status, payload)
     if flow.get("error"):
         raise RuntimeError(flow["error"])
@@ -93,27 +98,32 @@ def start_device() -> dict:
 
 
 def poll(flow: dict, cancel: Event) -> str:
-    """Block until the sign-in finishes. Returns 'ok' or 'cancelled'."""
+    """Wait for the sign-in to finish. Returns 'ok' or 'cancelled'.
+
+    Setting `cancel` ends the wait at once, and nothing is saved after that. Turning the sign-in
+    down in the browser counts as a cancel. Anything else that goes wrong raises.
+    """
     interval = max(1, int(flow.get("interval") or 5))
     deadline = float(flow["expires_at"])
-    token_url = endpoints()["token"]
+    token_url = endpoints(SIGN_IN_TIMEOUT)["token"]
     while time.time() < deadline:
-        if cancel.is_set() or _poll_cancel.is_set():
-            return "cancelled"
-        time.sleep(interval)
-        if cancel.is_set() or _poll_cancel.is_set():
+        if cancel.wait(interval):
             return "cancelled"
         status, payload = _post_form(token_url, {
             "grant_type": DEVICE_GRANT,
             "client_id": CLIENT_ID,
             "device_code": flow["device_code"],
-        })
+        }, SIGN_IN_TIMEOUT)
+        if cancel.is_set():
+            return "cancelled"
         outcome = _token_outcome(status, payload)
         if outcome == "pending":
             continue
         if outcome == "slow":
             interval = min(interval + 5, 30)
             continue
+        if outcome == DENIED:
+            return "cancelled"
         if isinstance(outcome, str):
             raise RuntimeError(outcome)
         _save(outcome)
@@ -144,7 +154,7 @@ def _token_outcome(status: int, payload: dict):
     if error == "slow_down":
         return "slow"
     if error in ("access_denied", "authorization_denied"):
-        return "Grok sign-in was denied."
+        return DENIED
     if error == "expired_token":
         return "The sign-in code expired. Start again."
     if status == 403:
@@ -242,7 +252,7 @@ def _save(tokens: dict) -> None:
     os.chmod(path, 0o600)
 
 
-def _post_form(url: str, form: dict) -> tuple[int, dict]:
+def _post_form(url: str, form: dict, timeout: float = FORM_TIMEOUT) -> tuple[int, dict]:
     data = urlencode(form).encode("utf-8")
     request = Request(url, data=data, method="POST", headers={
         "Content-Type": "application/x-www-form-urlencoded",
@@ -250,7 +260,7 @@ def _post_form(url: str, form: dict) -> tuple[int, dict]:
         "User-Agent": "iphone-layout",
     })
     try:
-        with urlopen(request, timeout=30, context=secure_context()) as response:
+        with urlopen(request, timeout=timeout, context=secure_context()) as response:
             raw = response.read().decode("utf-8")
             status = response.status
     except HTTPError as exc:

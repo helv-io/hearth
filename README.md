@@ -116,7 +116,7 @@ There is no single path that works on every iPhone.
 
 ## Organize
 
-LLM settings start with Grok. Sign in with Grok opens a browser code. A saved API key still works, and `XAI_API_KEY` is used for Grok when nothing else is saved. The key and the sign-in tokens stay in the user config directory.
+LLM settings start with Grok. Sign in with Grok opens a page in your browser and shows a code to enter there. The button becomes Cancel sign-in while Hearth waits. Cancel, closing Settings, or turning the sign-in down in the browser all stop it, and the rest of Hearth works again straight away. You can start it again at any time. A saved API key still works, and `XAI_API_KEY` is used for Grok when nothing else is saved. The key and the sign-in tokens stay in the user config directory.
 
 Other providers: OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, Groq, OpenRouter, Ollama, LM Studio, and a custom OpenAI-compatible endpoint. Anthropic uses its Messages API. The rest use chat completions.
 

@@ -22,6 +22,10 @@ ApplicationWindow {
     property string providerDocs: ""
     property bool confirmOpen: false
 
+    // Closing Settings ends a sign-in that is still waiting, so nothing is left running out of sight.
+    onSettingsOpenChanged: if (!settingsOpen) controller.cancelGrokSignIn()
+    onProviderIsGrokChanged: if (!providerIsGrok) controller.cancelGrokSignIn()
+
     function openSettings() {
         fillingSettings = true
         endpoint.text = controller.baseUrl
@@ -946,9 +950,17 @@ ApplicationWindow {
                     spacing: 8
                     visible: providerIsGrok
                     Button {
-                        text: controller.grokSignedIn ? "Sign out of Grok" : "Sign in with Grok"
-                        enabled: !controller.busy
-                        onClicked: controller.grokSignedIn ? controller.signOutGrok() : controller.startGrokSignIn()
+                        objectName: "grokButton"
+                        text: controller.grokWaiting ? "Cancel sign-in" : (controller.grokSignedIn ? "Sign out of Grok" : "Sign in with Grok")
+                        enabled: controller.grokWaiting || !controller.busy
+                        onClicked: {
+                            if (controller.grokWaiting)
+                                controller.cancelGrokSignIn()
+                            else if (controller.grokSignedIn)
+                                controller.signOutGrok()
+                            else
+                                controller.startGrokSignIn()
+                        }
                         background: Rectangle { radius: 8; color: parent.enabled ? "#1C1C22" : "#141418"; border.color: "#3A3A40"; border.width: 1 }
                         contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; leftPadding: 12; rightPadding: 12 }
                     }
