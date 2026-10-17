@@ -88,6 +88,10 @@ Rules:
 - Folders hold apps and shortcuts only. Never put a widget in a folder. More than 9 apps spill onto extra pages inside the folder. Keep going. Do not make an empty folder.
 - Shortcuts are web clips. Treat them as apps that belong beside the thing they open.
 - Follow the user's instruction. Where the instruction is silent, keep the current grouping.
+
+Popularity hints:
+- Each catalog row has "where", the place it sits now. People keep what they use most in the dock, then on page 1, and nearer the first items of a page. Treat that as a popularity hint. Keep the most used apps easy to reach: dock first, then page 1, then early places.
+- Some rows also have "data_mb" (size of the app's saved data), "app_mb" (the app's own size) and "owned_since" (year and month it was first obtained). A lot of saved data can mean heavy use. How long it has been owned says little. These are weak hints. The user's instruction comes first.
 """
 
 
@@ -109,7 +113,7 @@ def list_models(base_url: str, key: str, adapter: str = "", oauth: bool = False)
 
 
 def organize(base_url: str, key: str, model: str, instruction: str, state, adapter: str = "", oauth: bool = False,
-             cancel: Event | None = None, progress=None, limits: Limits | None = None) -> dict:
+             cancel: Event | None = None, progress=None, limits: Limits | None = None, facts: dict | None = None) -> dict:
     if not model:
         raise RuntimeError("Pick an LLM model.")
     instruction = " ".join(instruction.split())
@@ -121,7 +125,7 @@ def organize(base_url: str, key: str, model: str, instruction: str, state, adapt
         "Current layout:\n"
         f"{json.dumps(current_outline(state), ensure_ascii=False)}\n\n"
         "Catalog:\n"
-        f"{json.dumps(catalog(state), ensure_ascii=False)}\n\n"
+        f"{json.dumps(catalog(state, facts), ensure_ascii=False)}\n\n"
         "Follow the user's request. The rules still apply: every id once, "
         "widgets stay out of folders and out of the dock, and each page fits in "
         f"{active_screen().columns * active_screen().rows} cells."

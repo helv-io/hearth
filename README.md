@@ -62,6 +62,8 @@ Tests never open a device. The Makefile sets `QT_QPA_PLATFORM=offscreen`.
 
 ## Updates and privacy
 
+Hearth never collects any data. Nothing is sent to its author or to anyone else, apart from the update check described below. The one thing that leaves your computer on purpose is what you ask the LLM you set up to organize: your app names and bundle ids, where each app sits now, and a few sizes and dates the phone lists for them. It goes only to that LLM, only when you press Reorganize. Hearth never sends account details, messages, photos, or logs.
+
 When Hearth starts, it asks GitHub whether a newer version has been released. If there is one, a small card in the corner says so. Open download page takes you to the newest release in your browser. Not now hides the card until the next start. Skip this version hides it for good, until an even newer version comes out.
 
 Hearth asks every time it starts, and it says nothing when you are offline or GitHub does not answer. That one request to GitHub is the only thing Hearth sends on its own. It has no device information and nothing that identifies you. There is no tracking. Every request says only that it comes from Hearth and which version. Hearth also contacts the model provider you choose, but only when you ask it to organize, and your icon downloads and Grok sign-in use the internet when you use them.
@@ -123,6 +125,8 @@ There is no single path that works on every iPhone.
 ## Organize
 
 LLM settings start with Grok. Sign in with Grok opens a page in your browser and shows a code to enter there. The button becomes Cancel sign-in while Hearth waits. Cancel, closing Settings, or turning the sign-in down in the browser all stop it, and the rest of Hearth works again straight away. You can start it again at any time. A saved API key still works, and `XAI_API_KEY` is used for Grok when nothing else is saved. The key and the sign-in tokens stay in the user config directory.
+
+Reorganize also tells the model where each app sits now, since people keep what they use most in the dock and on page 1. When the phone lists them, it adds each app's size, the size of its saved data, and the month you first got it. These are only hints. There is nothing to turn on, and if the phone does not answer, Hearth sends the layout alone.
 
 Hearth does not choose a model for you. Pick a provider, connect it, and choose a model from its list, either in Organize or in Settings. Hearth remembers your choice. The list is fetched when Hearth starts and when you save Settings, and the last list is kept for when you are offline. Until a model is chosen, Reorganize says what is missing: connect a provider, or pick a model.
 

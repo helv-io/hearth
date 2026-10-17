@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.6 - 2026-10-17
+
+The organizer now knows where each app sits, and a little more about it, so it can tell which apps you use most.
+
+- Each app goes to the model with its place now: the dock slot, or the page and spot, or the folder. The prompt says the dock, page 1 and early spots are what people use most, and the model should keep those easy to reach.
+- When the phone lists them, each app also carries its size, the size of its saved data, and the month you first got it. These are weak hints and your request still comes first. The account behind the purchase is never read past that date and never sent.
+- If the phone does not answer, Hearth sends the layout alone, as before. There is no new setting or checkbox, and nothing here uses logs.
+- The README now says plainly that Hearth never collects any data and what the model sees.
+- Tests cover the place words, the cut-down facts, the Apple ID staying out, the cap, and the read failing quietly.
+
 ## 0.6.5 - 2026-10-17
 
 Send to Device no longer asks a long question. Most of the time it does not ask at all.

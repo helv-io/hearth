@@ -1098,18 +1098,53 @@ def change_summary(before: State, after: State, limit: int = 14) -> list[str]:
     return lines
 
 
-def catalog(state: State) -> list[dict]:
+def where_now(state: State) -> dict[str, str]:
+    """Where each id sits now, in words: the dock slot, or the page and place, or the folder."""
+    places: dict[str, str] = {}
+    if not isinstance(state, list):
+        return places
+
+    def note(item, text: str) -> None:
+        key = ident(item) if isinstance(item, dict) else ""
+        if key and key not in places:
+            places[key] = text
+
+    for slot, item in enumerate(state[0] if state and isinstance(state[0], list) else [], start=1):
+        if not is_folder(item):
+            note(item, f"dock {slot}")
+    for number, page in enumerate(state[1:], start=1):
+        if not isinstance(page, list):
+            continue
+        for place, item in enumerate(page, start=1):
+            if is_folder(item):
+                name = label(item)
+                for spot, icon in enumerate(flatten_folder(item), start=1):
+                    note(icon, f'folder "{name}" on page {number}, item {spot}')
+            else:
+                note(item, f"page {number}, item {place}")
+    return places
+
+
+def catalog(state: State, facts: dict | None = None) -> list[dict]:
     rows = []
+    places = where_now(state)
     for icon in walk_icons(state):
         key = ident(icon)
         if not key:
             continue
-        rows.append({
+        row = {
             "id": key,
             "name": label(icon),
             "kind": kind_of(icon),
             "cells": cells_for(icon),
-        })
+            "where": places.get(key, ""),
+        }
+        known = (facts or {}).get(key)
+        if isinstance(known, dict):
+            for field in ("data_mb", "app_mb", "owned_since"):
+                if field in known:
+                    row[field] = known[field]
+        rows.append(row)
     rows.sort(key=lambda row: (row["kind"] != "widget", row["name"].casefold()))
     return rows
 
