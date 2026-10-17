@@ -26,8 +26,9 @@ finish-args:
   - --device=dri
   - --share=network
   - --device=all
+  # Only /run. On most Linux systems /var/run is a link to /run, so the sandbox sees the socket at both paths.
+  # Do not add --filesystem=/var/run/usbmuxd: with a live socket, Flatpak 1.18 and bubblewrap 0.12 refuse to start the app.
   - --filesystem=/run/usbmuxd
-  - --filesystem=/var/run/usbmuxd
   - --talk-name=org.freedesktop.Flatpak
 modules:
   - name: hearth

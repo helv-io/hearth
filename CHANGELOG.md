@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.3 - 2026-10-17
+
+The Linux app starts again after the USB service is installed. With the service running, the 0.6.2 Flatpak stopped at launch with: bwrap: Can't make symlink at /var/run: existing destination is ../run.
+
+- The cause: the Flatpak asked for the USB socket under two names, /run/usbmuxd and /var/run/usbmuxd. On most systems /var/run is a link to /run. When the socket really exists, the current Flatpak and bubblewrap trip over the second name and refuse to start any app that asks for it. Before the USB service was installed there was no socket, so nothing went wrong.
+- Now the Flatpak asks for /run/usbmuxd only. The app still reaches the socket by either name inside its sandbox.
+- A new test fails if the Flatpak ever asks for anything under /var/run again. The Flatpak build now also creates a real socket at /run/usbmuxd before it starts the installed app, so the check runs the way it does on a computer with the USB service running.
+- Nothing else changes. If you installed 0.6.2 from Flatpak, install this one over it.
+
 ## 0.6.2 - 2026-10-17
 
 The Linux app starts again. The 0.6.1 Flatpak did not open at all: it stopped at launch with a message about a missing library, libgssapi_krb5.

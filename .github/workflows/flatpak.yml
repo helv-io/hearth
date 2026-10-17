@@ -43,6 +43,12 @@ jobs:
         run: |
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --noninteractive --assumeyes --bundle hearth.flatpak
+          # A computer with the USB service running has a real socket at /run/usbmuxd, and the app asks for it.
+          # 0.6.2 would not start there: Flatpak 1.18 and bubblewrap 0.12 died on the second name, /var/run/usbmuxd.
+          python3 -c 'import socket; s = socket.socket(socket.AF_UNIX); s.bind("/run/usbmuxd")'
+          chmod 666 /run/usbmuxd
+          test -S /run/usbmuxd
+          flatpak run --command=true io.helv.Hearth
           flatpak run --command=python3 io.helv.Hearth -c 'import hearth.__main__'
           status=0
           flatpak run --env=QT_QPA_PLATFORM=offscreen --command=hearth io.helv.Hearth --selftest > selftest.txt || status=$?
