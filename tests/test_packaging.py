@@ -218,3 +218,27 @@ class FlatpakStartsTests(unittest.TestCase):
         self.assertIn("uses: ./.github/workflows/flatpak.yml", text)
         self.assertRegex(text, r"flatpak-publish:\n\s+needs: flatpak\n")
         self.assertRegex(text, r"verify:\n\s+needs: \[[^\]]*flatpak-publish")
+
+
+class FlatpakSocketTests(unittest.TestCase):
+    """0.6.2 asked for the USB socket as /run/usbmuxd and /var/run/usbmuxd. Once the socket existed, Flatpak 1.18
+    with bubblewrap 0.12 died at launch with: Can't make symlink at /var/run: existing destination is ../run."""
+
+    def finish_args(self):
+        text = read("packaging/flatpak/io.helv.Hearth.yml")
+        block = re.search(r"^finish-args:\n((?:  .*\n)+)", text, re.MULTILINE)
+        self.assertIsNotNone(block)
+        return [line.strip()[2:] for line in block.group(1).splitlines() if line.strip().startswith("- ")]
+
+    def test_the_flatpak_asks_for_nothing_under_var_run(self):
+        for arg in self.finish_args():
+            self.assertNotRegex(arg, r"(/var/run|/var/\.\./run)", arg)
+
+    def test_the_flatpak_still_asks_for_the_usb_socket(self):
+        self.assertIn("--filesystem=/run/usbmuxd", self.finish_args())
+
+    def test_the_flatpak_build_starts_the_app_with_a_real_socket_in_place(self):
+        text = read(".github/workflows/flatpak.yml")
+        self.assertIn('bind("/run/usbmuxd")', text)
+        self.assertLess(text.index('bind("/run/usbmuxd")'), text.index("--command=true"))
+        self.assertLess(text.index("--command=true"), text.index("--command=hearth"))
