@@ -1,0 +1,46 @@
+# Settings for the shared checks (the pinned copy is in .agent-checks/).
+[docs]
+user-facing = "^(hearth|packaging)/"
+require = ["README.md", "CHANGELOG.md"]
+
+# Plain words. No terminal text in the app or the README tables; the exact command shows only as a folded fallback after a failed install.
+[[voice.extra]]
+pattern = '(?i)\bthe host\b'
+why = "jargon"
+fix = "say 'the computer'"
+paths = '\.qml$|^README\.md$'
+
+[[voice.extra]]
+pattern = '\b(pkexec|winget|sudo|flatpak-spawn|systemctl|usbmuxd)\b'
+why = "a terminal command or tool name where people read"
+fix = "describe the step in plain words; the exact command belongs in the folded manual steps after a failed install"
+paths = '\.qml$|^README\.md$'
+
+[model-ids]
+exempt = []
+
+[private]
+patterns = ['helv\.io']
+hashes = [
+  "befa156f0283eb0062beb9b86e16a413e1cf8c5135e5518d5c4fa321ce0c7b6b",
+  "ae50ad81a2d4006e372c0bd3220f24c377345455d0e980c3f0d94f0e5faf2561",
+]
+
+[[private.allow]]
+path = '^pyproject\.toml$'
+why = "the package author is the project's own public name"
+
+[[release.version]]
+file = "hearth/__init__.py"
+pattern = '__version__ = "([^"]+)"'
+
+[[release.version]]
+file = "pyproject.toml"
+pattern = '(?m)^version = "([^"]+)"'
+
+[[release.version]]
+file = "packaging/linux/io.helv.Hearth.metainfo.xml"
+pattern = '(?s)<releases>\s*<release version="([^"]+)"'
+
+[no-skips]
+allow = []
