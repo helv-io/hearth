@@ -62,6 +62,9 @@ ApplicationWindow {
         providerDocs = preset.docs || ""
         if (fillEndpoint && !preset.custom && preset.base)
             endpoint.text = preset.base
+        // A model name belongs to the provider it came from.
+        if (fillEndpoint)
+            modelBox.editText = ""
     }
 
     function hit(x, y) {
@@ -682,6 +685,31 @@ ApplicationWindow {
                         color: "#8E8E93"
                         font.pixelSize: 12
                     }
+                    ComboBox {
+                        id: modelPicker
+                        objectName: "modelPicker"
+                        width: parent.width
+                        visible: controller.modelNeed === "pick"
+                        model: controller.modelChoices
+                        currentIndex: -1
+                        displayText: "Pick a model"
+                        onActivated: controller.chooseModel(currentText)
+                        background: Rectangle { radius: 8; color: "#1C1C22"; border.color: "#0A84FF"; border.width: 1 }
+                        contentItem: Text {
+                            text: modelPicker.displayText
+                            color: "white"
+                            leftPadding: 10
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                    Button {
+                        objectName: "connectButton"
+                        visible: controller.modelNeed === "connect"
+                        text: "Connect a provider"
+                        onClicked: openSettings()
+                        background: Rectangle { radius: 8; color: "#1C1C22"; border.color: "#0A84FF"; border.width: 1 }
+                        contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; leftPadding: 12; rightPadding: 12 }
+                    }
                     Flow {
                         width: parent.width
                         spacing: 6
@@ -1020,8 +1048,8 @@ ApplicationWindow {
                     model: controller.modelChoices
                     background: Rectangle { radius: 8; color: "#1C1C22" }
                     contentItem: Text {
-                        text: modelBox.editText
-                        color: "white"
+                        text: modelBox.editText !== "" ? modelBox.editText : "Pick a model"
+                        color: modelBox.editText !== "" ? "white" : "#6E6E73"
                         leftPadding: 10
                         verticalAlignment: Text.AlignVCenter
                     }

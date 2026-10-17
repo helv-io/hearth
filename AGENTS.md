@@ -43,7 +43,7 @@ A rule that nothing enforces is a wish. Before you push, run `make test`, `ruff 
 | Every commit is Helvio Pedreschi <helvio88@gmail.com>, nobody else | git refuses to guess an identity on the box; `identity` check on every push |
 | README and CHANGELOG move with every user-facing change; otherwise `Docs: skip <reason>` in a commit message | `docs` check |
 | No em dashes, no marketing words, no jargon such as "the host", no terminal commands in the app or the README | `voice` check, with the extra words in `.agent-checks.toml`; `tests/test_wording.py` |
-| No built-in model id | `model-ids` check; the one remaining `DEFAULT_MODEL` carries a dated exception |
+| No built-in model id, and no default model | `model-ids` check, with no exception; `tests/test_no_default_model.py` |
 | Every web request goes through `hearth.net.open_url` | ruff `TID251` in the `lint` job |
 | Every build target installs from ready-made wheels | `scripts/check-wheels.py` in the `wheels` job |
 | The tag matches the version files; the release page has all four files | `gate` and `verify` jobs in `release.yml` |

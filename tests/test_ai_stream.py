@@ -377,6 +377,7 @@ class OrganizeControllerTests(unittest.TestCase):
         with patch.object(drivers, "live_probe", return_value=READY):
             self.controller = Controller()
         self.addCleanup(self.controller.shutdown)
+        self.controller._config["model"] = "m"  # the person has picked a model; there is no built-in one
         self.controller._state = [[], [{"displayIdentifier": "a"}]]
         resolved = patch(
             "hearth.presets.resolve",

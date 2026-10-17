@@ -114,6 +114,8 @@ There is no single path that works on every iPhone.
 
 LLM settings start with Grok. Sign in with Grok opens a page in your browser and shows a code to enter there. The button becomes Cancel sign-in while Hearth waits. Cancel, closing Settings, or turning the sign-in down in the browser all stop it, and the rest of Hearth works again straight away. You can start it again at any time. A saved API key still works, and `XAI_API_KEY` is used for Grok when nothing else is saved. The key and the sign-in tokens stay in the user config directory.
 
+Hearth does not choose a model for you. Pick a provider, connect it, and choose a model from its list, either in Organize or in Settings. Hearth remembers your choice. The list is fetched when Hearth starts and when you save Settings, and the last list is kept for when you are offline. Until a model is chosen, Reorganize says what is missing: connect a provider, or pick a model.
+
 Other providers: OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, Groq, OpenRouter, Ollama, LM Studio, and a custom OpenAI-compatible endpoint. Anthropic uses its Messages API. The rest use chat completions.
 
 The model proposes a layout. Apply puts it on the canvas. Send to Device is a separate step, and it asks first.
