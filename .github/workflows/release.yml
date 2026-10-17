@@ -16,9 +16,14 @@ jobs:
       - uses: actions/checkout@v4
       - run: python3 .agent-checks/bin/agent-checks release-version "$GITHUB_REF_NAME"
 
+  # ci.yml has a job that opens issues, so the call has to allow it. A called workflow can never hold more than its caller,
+  # and without this GitHub refuses to start the whole run (scripts/check-workflow-permissions.py checks this).
   test:
     needs: gate
     uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      issues: write
 
   notes:
     needs: test
