@@ -1,6 +1,5 @@
 # TODO
 
-- Let the user pick a device when more than one is plugged in, instead of asking them to unplug the others.
 - Learn iPad widget spans from a real icon state. Until then an iPad widget uses the iPhone sizes: 2×2, 4×2, and 4×4.
 - Confirm whether an iPad stores the home screen in portrait order or landscape order, and follow that when it is known.
 - Teach the organizer to put folders in an iPad dock. Dragging can already do that. The proposal schema cannot.

@@ -33,6 +33,7 @@ ApplicationWindow {
         keyField.text = ""
         forgetKey.checked = false
         updatesBox.checked = controller.checkUpdates
+        wifiBox.checked = controller.wifiEnabled
         controller.clearUpdateResult()
         for (let i = 0; i < providerBox.count; i++) {
             if (providerBox.valueAt(i) === controller.provider) {
@@ -231,11 +232,32 @@ ApplicationWindow {
                     spacing: 8
                     Text {
                         Layout.fillWidth: true
+                        visible: !controller.showDevices
                         text: controller.deviceName || controller.linkLabel
                         color: "white"
                         font.pixelSize: 13
                         font.bold: true
                         elide: Text.ElideRight
+                    }
+                    ComboBox {
+                        id: devicePicker
+                        objectName: "devicePicker"
+                        Layout.fillWidth: true
+                        visible: controller.showDevices
+                        enabled: !controller.busy
+                        model: controller.devices
+                        currentIndex: controller.deviceIndex
+                        onActivated: (index) => controller.chooseDevice(index)
+                        background: Rectangle { radius: 8; color: "#1C1C22"; border.color: "#3A3A40"; border.width: 1 }
+                        contentItem: Text {
+                            text: devicePicker.displayText
+                            color: "white"
+                            font.pixelSize: 13
+                            font.bold: true
+                            leftPadding: 10
+                            elide: Text.ElideRight
+                            verticalAlignment: Text.AlignVCenter
+                        }
                     }
                     Button {
                         objectName: "refreshDevice"
@@ -1053,6 +1075,26 @@ ApplicationWindow {
                         leftPadding: 10
                         verticalAlignment: Text.AlignVCenter
                     }
+                }
+                Text { text: "Devices"; color: "white"; font.pixelSize: 18; font.bold: true; topPadding: 8 }
+                CheckBox {
+                    id: wifiBox
+                    objectName: "wifiBox"
+                    text: "Connect over Wi-Fi"
+                    onToggled: controller.setWifiEnabled(checked)
+                    contentItem: Text {
+                        text: wifiBox.text
+                        color: "#C7C7CC"
+                        leftPadding: wifiBox.indicator.width + 8
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+                Text {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: controller.wifiHint
+                    color: "#6E6E73"
+                    font.pixelSize: 11
                 }
                 Text { text: "Updates"; color: "white"; font.pixelSize: 18; font.bold: true; topPadding: 8 }
                 CheckBox {

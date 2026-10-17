@@ -1,14 +1,23 @@
 import unittest
 from unittest import mock
 
-from hearth import device, drivers
+from hearth import device, drivers, wireless
 
 
 class WordingTests(unittest.TestCase):
-    def test_two_devices_say_to_unplug_one(self):
-        text = device.friendly(RuntimeError("More than one device"))
-        self.assertIn("Unplug one", text)
-        self.assertNotIn("pull", text.lower())
+    def test_the_two_failures_say_what_to_do_in_few_words(self):
+        self.assertEqual(
+            device.friendly(wireless.CantFind()),
+            "Can't find your iPhone on this network. Wake it, or plug it in.",
+        )
+        self.assertEqual(
+            device.friendly(wireless.Lost()),
+            "Lost the connection to your iPhone. Wake it and try again.",
+        )
+
+    def test_no_failure_text_uses_jargon_or_dashes(self):
+        for text in (wireless.CANT_FIND, wireless.LOST, wireless.WIFI_LABEL, wireless.WIFI_HINT):
+            self.assertNotRegex(text.lower(), r"usbmux|lockdown|bonjour|mdns|\u2014|\u2013")
 
     def test_install_success_names_no_removed_button(self):
         ready = drivers.Report(False, True, "ready")

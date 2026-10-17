@@ -9,7 +9,7 @@ from threading import Event, Thread
 from PySide6.QtCore import QObject, QThread, Property, Signal, Slot, QUrl
 from PySide6.QtGui import QDesktopServices, QGuiApplication
 
-from hearth import __version__, ai, device, drivers, grok_sso, icons, layout, presets, screens, settings, updates
+from hearth import __version__, ai, device, drivers, grok_sso, icons, layout, presets, screens, settings, updates, wireless
 
 
 SHUTDOWN_WAIT_MS = 4000
@@ -38,6 +38,7 @@ class _Job(QThread):
         try:
             if self.kind == "pull":
                 misses = asyncio.run(device.pull(
+                    self.payload.get("chosen"),
                     self.cancel,
                     lambda meta: self.pulled.emit(meta),
                     lambda ident, url: self.icon_ready.emit(ident, url),
@@ -45,7 +46,7 @@ class _Job(QThread):
                 ))
                 self.missed.emit(misses)
             elif self.kind == "push":
-                result = asyncio.run(device.push(self.payload["state"]))
+                result = asyncio.run(device.push(self.payload.get("chosen"), self.payload["state"]))
                 self.pushed.emit(result)
             elif self.kind == "models":
                 config, preset, key, oauth = presets.resolve()
@@ -136,7 +137,8 @@ class Controller(QObject):
     driverChanged = Signal()
     linkChanged = Signal()
     updateChanged = Signal()
-    scanned = Signal(int, str, bool)
+    devicesChanged = Signal()
+    scanned = Signal(int, object, bool)
 
     def __init__(self):
         super().__init__()
@@ -172,8 +174,12 @@ class Controller(QObject):
         self._driver = drivers.status()
         self._driver_failed = False
         self._link = ""
-        self._pending_link = ""
+        self._found: list[wireless.Candidate] = []
+        self._active = ""
+        self._tried_id = ""
+        self._pending_ids: tuple = ()
         self._pending_hits = 0
+        self._scanning = False
         self._scan_gen = 0
         self._cancel = Event()
         self._job: _Job | None = None
@@ -237,9 +243,7 @@ class Controller(QObject):
     deviceName = Property(str, _device, notify=layoutChanged)
 
     def _link_label(self):
-        if self._link == "many":
-            return "More than one device"
-        if self._link == "one":
+        if self._found:
             return "Device connected"
         return "Nothing connected yet"
 
@@ -248,13 +252,36 @@ class Controller(QObject):
     def _link_detail(self):
         if self._device_name:
             return ""
-        if self._link == "many":
-            return "Unplug one."
-        if self._link == "one":
-            return "Found one device."
+        if self._found:
+            return "Found your device."
         return ""
 
     linkDetail = Property(str, _link_detail, notify=linkChanged)
+
+    def _device_labels(self):
+        return wireless.labels(self._found)
+
+    devices = Property("QVariantList", _device_labels, notify=devicesChanged)
+
+    def _device_index(self):
+        for index, item in enumerate(self._found):
+            if item.id == self._active:
+                return index
+        return -1
+
+    deviceIndex = Property(int, _device_index, notify=devicesChanged)
+
+    def _show_devices(self):
+        return len(self._found) > 1
+
+    showDevices = Property(bool, _show_devices, notify=devicesChanged)
+
+    def _wifi_enabled(self):
+        return wireless.wifi_enabled()
+
+    wifiEnabled = Property(bool, _wifi_enabled, notify=devicesChanged)
+
+    wifiHint = Property(str, lambda self: wireless.WIFI_HINT, constant=True)
 
     def _subtitle(self):
         bits = []
@@ -664,49 +691,95 @@ class Controller(QObject):
     def _start_scan(self, manual: bool):
         if self._busy:
             return
+        if self._scanning and not manual:
+            return
+        self._scanning = True
         self._scan_gen += 1
         gen = self._scan_gen
         Thread(target=self._scan_thread, args=(gen, manual), daemon=True).start()
 
     def _scan_thread(self, gen: int, manual: bool):
-        self.scanned.emit(gen, device.presence(), manual)
+        self.scanned.emit(gen, device.scan(fresh=manual), manual)
 
-    @Slot(int, str, bool)
-    def _on_scanned(self, gen: int, kind: str, manual: bool):
+    @Slot(int, object, bool)
+    def _on_scanned(self, gen: int, found, manual: bool):
+        self._scanning = False
         if gen != self._scan_gen:
             return
+        found = list(found or [])
         if manual:
-            self._apply_link(kind, read=False)
-            if kind == "one":
-                self._set_status("One device is connected.", False)
-            elif kind == "many":
-                self._set_status("More than one device is connected. Unplug one.", True)
-            else:
-                self._set_status("No device is connected.", True)
-            return
-        if kind == self._link:
-            self._pending_link = ""
+            self._pending_ids = ()
             self._pending_hits = 0
+            self._apply_devices(found, read=False)
+            if len(found) > 1:
+                self._set_status(f"Found {len(found)} devices.", False)
+            elif found:
+                self._set_status(f"Found {found[0].label}.", False)
+            else:
+                self._set_status("No device found. Plug one in, or wake it.", True)
             return
-        if kind != self._pending_link:
-            self._pending_link = kind
+        ids = tuple(item.id for item in found)
+        current = tuple(item.id for item in self._found)
+        if ids == current:
+            self._pending_ids = ()
+            self._pending_hits = 0
+            if wireless.labels(found) != wireless.labels(self._found):
+                self._found = found  # a cable can show up for a phone that was on Wi-Fi
+                self.devicesChanged.emit()
+            else:
+                self._found = found
+            return
+        if ids != self._pending_ids:
+            self._pending_ids = ids
             self._pending_hits = 0
         self._pending_hits += 1
-        # A device shows up on the first sighting. A dropout has to repeat, so a
-        # one-off usbmux miss does not read the phone a second time.
-        needed = 1 if kind == "one" else 2
+        # A new device shows up on the first sighting. A device going missing has to
+        # repeat, so a one-off miss does not read the phone a second time.
+        needed = 1 if set(current) <= set(ids) else 2
         if self._pending_hits < needed:
             return
-        self._pending_link = ""
+        self._pending_ids = ()
         self._pending_hits = 0
-        previous = self._link
-        self._apply_link(kind, read=kind == "one" and previous != "one" and not self._dirty)
+        self._apply_devices(found, read=True)
 
-    def _apply_link(self, kind: str, read: bool):
-        self._link = kind
+    def _apply_devices(self, found: list, read: bool):
+        """Take a new list. Keep the device in use, else the last one chosen, else the first."""
+        self._found = found
+        self._active = wireless.pick(found, wireless.last_device(), self._active)
+        self._link = "one" if found else ""
+        if not self._active:
+            self._tried_id = ""
         self.linkChanged.emit()
-        if read and not self._busy:
+        self.devicesChanged.emit()
+        if read and self._active and self._active != self._tried_id and not self._dirty and not self._busy:
+            self._tried_id = self._active
             self.pull()
+
+    def _chosen(self):
+        for item in self._found:
+            if item.id == self._active:
+                return item
+        return None
+
+    @Slot(int)
+    def chooseDevice(self, index: int):
+        """Operate the device picked from the list, and remember it."""
+        if self._busy or not 0 <= index < len(self._found):
+            return
+        self._active = self._found[index].id
+        wireless.remember(self._active)
+        self.devicesChanged.emit()
+        if self._dirty:
+            self._set_status("Switched. Read from Device loads it.", False)
+            return
+        self._tried_id = self._active
+        self.pull()
+
+    @Slot(bool)
+    def setWifiEnabled(self, enabled: bool):
+        wireless.set_wifi_enabled(enabled)
+        self.devicesChanged.emit()
+        self._start_scan(False)
 
     @Slot()
     def installDriver(self):
@@ -734,7 +807,7 @@ class Controller(QObject):
 
     @Slot()
     def pull(self):
-        self._start(_Job("pull", self._cancel))
+        self._start(_Job("pull", self._cancel, chosen=self._chosen()))
 
     @Slot()
     def push(self):
@@ -747,7 +820,7 @@ class Controller(QObject):
             if not layout.page_fits(page):
                 self._set_status(f"Page {index} does not fit on the phone. Move something off it.", True)
                 return
-        self._start(_Job("push", self._cancel, state=outgoing))
+        self._start(_Job("push", self._cancel, state=outgoing, chosen=self._chosen()))
 
     @Slot(str)
     def loadVersion(self, path: str):
@@ -1084,6 +1157,7 @@ class Controller(QObject):
             self._set_status("The device returned an empty layout.", True)
             return
         self._device_name = str(meta.get("name") or "iPhone")
+        wireless.remember(self._active)
         self._model_name = str(meta.get("model") or "")
         self._ios = str(meta.get("ios") or "")
         self._wallpaper = str(meta.get("wallpaper") or "")

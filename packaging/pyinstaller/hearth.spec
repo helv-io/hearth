@@ -264,5 +264,8 @@ else:
             "CFBundleShortVersionString": __version__,
             "CFBundleVersion": __version__,
             "NSHighResolutionCapable": True,
+            # macOS asks before an app looks for devices on the home network.
+            "NSLocalNetworkUsageDescription": "Hearth looks for your paired iPhone on your home network.",
+            "NSBonjourServices": ["_apple-mobdev2._tcp"],
         },
     )

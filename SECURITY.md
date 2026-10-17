@@ -1,6 +1,6 @@
 # Security
 
-Hearth holds a pairing with the device through pymobiledevice3, in that library's own pairing directory. Those files are secrets. Do not put them in an issue, a commit, or a log pasted into a report.
+Hearth holds a pairing with the device through pymobiledevice3, in that library's own pairing directory, and keeps a copy in a `pairing` folder of its own, readable only by you, so a Wi-Fi connection can find it. Those files are secrets. Do not put them in an issue, a commit, or a log pasted into a report.
 
 A home-screen plist names every app and shortcut on the device. Treat a real one as private. The version notes in the user state directory are private too.
 

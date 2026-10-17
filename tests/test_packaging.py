@@ -79,7 +79,7 @@ class MacBuildsForBothKindsOfMacTests(unittest.TestCase):
         # cryptography 50 has no Intel Mac wheel. Compiling it linked the runner's
         # old OpenSSL and the app failed to start.
         text = read(".github/workflows/macos.yml")
-        self.assertIn('pip install --only-binary=:all: "PySide6>=6.6" "pymobiledevice3>=4.0" pyinstaller', text)
+        self.assertIn('pip install --only-binary=:all: "PySide6>=6.6" "pymobiledevice3>=11.31" pyinstaller', text)
         self.assertIn("pip install --no-deps -e .", text)
 
     def test_one_failing_build_does_not_hide_the_other(self):

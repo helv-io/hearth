@@ -1,4 +1,4 @@
-"""Read and write a paired iPhone or iPad over usbmuxd. No pairing secrets are logged."""
+"""Read and write a paired iPhone or iPad, over a cable or Wi-Fi. No pairing secrets are logged."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import plistlib
 from datetime import datetime
 from pathlib import Path
 
-from hearth import drivers, icons
+from hearth import drivers, icons, wireless
 from hearth.layout import ident, is_widget, kind_of, label, monogram
 from hearth.paths import version_dir
 from hearth.screens import Screen, note_fields
@@ -25,8 +25,6 @@ _NOT_LAYOUT = frozenset({
 def friendly(exc: BaseException) -> str:
     text = str(exc).strip() or exc.__class__.__name__
     lowered = text.lower()
-    if "more than one" in lowered:
-        return "More than one iPhone or iPad is connected. Unplug one and try again."
     if "usbmux" in lowered or "no device" in lowered or "device not found" in lowered or "connection refused" in lowered:
         report = drivers.status()
         if report.needed and not report.ready:
@@ -131,39 +129,40 @@ def load_note(path: str) -> dict:
     return data if isinstance(data, dict) else {}
 
 
-async def _listed():
-    from pymobiledevice3.usbmux import list_devices
-    return await list_devices()
-
-
-def presence() -> str:
-    """How many devices usbmux can see: none, one, or many. Serials stay out."""
+def scan(fresh: bool = False) -> list[wireless.Candidate]:
+    """Every device that can be reached right now. A failure is an empty list."""
     try:
-        found = asyncio.run(_listed())
+        return asyncio.run(wireless.discover(fresh=fresh))
     except Exception:
-        return "none"
-    count = len(found or [])
-    if count > 1:
-        return "many"
-    if count == 1:
-        return "one"
-    return "none"
+        return []
 
 
-async def _connect():
-    """Pair if needed, and refuse to guess when two devices are plugged in."""
-    from pymobiledevice3.lockdown import create_using_usbmux
-    from pymobiledevice3.usbmux import list_devices
-
-    found = await list_devices()
-    if not found:
-        raise RuntimeError("No device is connected")
-    if len(found) > 1:
-        raise RuntimeError("More than one iPhone or iPad is connected")
-    return await create_using_usbmux(serial=found[0].serial, autopair=True)
+async def _connect(chosen: wireless.Candidate | None):
+    """Open the chosen device. With none chosen, take the one a person would: the last used, else the first."""
+    if chosen is None:
+        found = await wireless.discover()
+        if not found:
+            raise RuntimeError("No device is connected")
+        wanted = wireless.pick(found, wireless.last_device())
+        chosen = next(item for item in found if item.id == wanted)
+    return await wireless.connect(chosen)
 
 
-async def pull(cancel, on_state, on_icon, on_progress) -> dict:
+async def _work(coro):
+    """Run phone work. A dropped connection says so in plain words."""
+    try:
+        return await coro
+    except Exception as exc:
+        if wireless.dropped(exc) and not isinstance(exc, wireless.CantFind):
+            raise wireless.Lost() from exc
+        raise
+
+
+async def pull(chosen, cancel, on_state, on_icon, on_progress) -> dict:
+    return await _work(_pull(chosen, cancel, on_state, on_icon, on_progress))
+
+
+async def _pull(chosen, cancel, on_state, on_icon, on_progress) -> dict:
     """Read the layout, then icons. Wallpaper is a separate service call.
 
     getHomeScreenWallpaperPNGData terminates the SpringBoard connection on
@@ -171,32 +170,33 @@ async def pull(cancel, on_state, on_icon, on_progress) -> dict:
     """
     from pymobiledevice3.services.springboard import SpringBoardServicesService
 
-    client = await _connect()
+    client = await _connect(chosen)
     try:
-        values = client.all_values
-        product = str(values.get("ProductType") or "")
-        device_class = str(values.get("DeviceClass") or "")
-        ipad = device_class.lower() == "ipad" or product.startswith("iPad")
-        name = values.get("DeviceName") or ("iPad" if ipad else "iPhone")
-        model = client.display_name or product
-        ios = values.get("ProductVersion") or ""
-        wallpaper = await _wallpaper(client, SpringBoardServicesService)
-        holder = _Springboard(client, SpringBoardServicesService)
-        try:
-            state = await holder.current.get_icon_state()
-            on_state({
-                "state": state,
-                "name": name,
-                "model": model,
-                "ios": str(ios),
-                "product": product,
-                "deviceClass": device_class,
-                "wallpaper": wallpaper,
-            })
-            jobs = _icon_jobs(state)
-            phone, pending = await _phone_icons(holder, jobs, cancel, on_icon, on_progress)
-        finally:
-            await holder.close()
+        async with wireless.Heartbeat(client):
+            values = client.all_values
+            product = str(values.get("ProductType") or "")
+            device_class = str(values.get("DeviceClass") or "")
+            ipad = device_class.lower() == "ipad" or product.startswith("iPad")
+            name = values.get("DeviceName") or ("iPad" if ipad else "iPhone")
+            model = client.display_name or product
+            ios = values.get("ProductVersion") or ""
+            wallpaper = await _wallpaper(client, SpringBoardServicesService)
+            holder = _Springboard(client, SpringBoardServicesService)
+            try:
+                state = await holder.current.get_icon_state()
+                on_state({
+                    "state": state,
+                    "name": name,
+                    "model": model,
+                    "ios": str(ios),
+                    "product": product,
+                    "deviceClass": device_class,
+                    "wallpaper": wallpaper,
+                })
+                jobs = _icon_jobs(state)
+                phone, pending = await _phone_icons(holder, jobs, cancel, on_icon, on_progress)
+            finally:
+                await holder.close()
     finally:
         await client.close()
 
@@ -271,14 +271,18 @@ async def _wallpaper(client, service_type) -> str:
     return ""
 
 
-async def push(state) -> dict:
+async def push(chosen, state) -> dict:
+    return await _work(_push(chosen, state))
+
+
+async def _push(chosen, state) -> dict:
     from pymobiledevice3.services.springboard import SpringBoardServicesService
 
     from hearth.layout import idents
 
-    client = await _connect()
+    client = await _connect(chosen)
     try:
-        async with SpringBoardServicesService(client) as springboard:
+        async with wireless.Heartbeat(client), SpringBoardServicesService(client) as springboard:
             previous = await springboard.get_icon_state()
             await springboard.set_icon_state(state)
             await asyncio.sleep(2.0)

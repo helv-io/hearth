@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0 - 2026-10-17
+
+Hearth works over Wi-Fi, and it no longer stops when more than one device shows up.
+
+- Hearth no longer refuses to work when it sees more than one device. This is what happened when the same iPhone was connected by cable and by Wi-Fi sync at once. Now each phone is listed once, and when it is on both, Hearth uses the cable.
+- With one device there is nothing to choose and nothing new on screen. With more than one, the device name at the top of the sidebar becomes a list. Pick one and Hearth reads it. Hearth remembers your pick for next time. If the device you are using goes away, Hearth moves to the one that is left, or shows that nothing is connected.
+- You can now leave the cable out. Plug a device in once and Hearth lets it be found on your home network. After that it shows up as its name with (Wi-Fi) after it. Hearth only connects to a device you have already paired by cable.
+- If Hearth cannot find the device on the network, it says: Can't find your iPhone on this network. Wake it, or plug it in. If the connection drops partway, it says: Lost the connection to your iPhone. Wake it and try again.
+- Settings has a new switch, Connect over Wi-Fi. It is on by default. Off means Hearth does not look on your network, does not set devices up for Wi-Fi, and ignores any device that is only on Wi-Fi.
+- On Linux, a device you have paired before is found over Wi-Fi even when the USB service is not installed, and Hearth no longer asks you to install it in that case.
+- The Mac app now asks for permission to find devices on your network, as macOS requires.
+- Hearth keeps a private copy of each pairing in its own folder, readable only by you.
+- Hearth now needs pymobiledevice3 11.31 or newer.
+
 ## 0.5.6 - 2026-10-17
 
 The old name is gone. This is a cleanup, and nothing changes in how the editor works.

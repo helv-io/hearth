@@ -1,10 +1,12 @@
 # Devices
 
-Hearth talks to one iPhone or iPad over USB. Unlock the device and tap Trust. A developer disk image is not used.
+Hearth talks to one iPhone or iPad at a time, over a cable or over Wi-Fi. Unlock the device and tap Trust. A developer disk image is not used.
 
 macOS already has the USB service. Linux needs `usbmuxd`. Windows needs Apple Mobile Device Support. Hearth checks which system it is on and, when the service is missing or stopped, one button installs or starts it. You may be asked for your password or to approve it. When the setup fails, the sidebar says what went wrong, offers the button again, and on Windows offers the Apple Devices page in the Store. It also offers **Show manual steps**, folded away, with the exact step and a Copy button. The step is never shown before a failure.
 
-Hearth works with one device at a time. If two are plugged in, Read from Device and Send to Device stop and ask you to unplug one. Two devices talking at once can send the layout to the wrong one. The serial number is not shown.
+Hearth works with one device at a time and never refuses because there are several. One device needs no choice. Two or more show a list at the top of the sidebar, and the pick is remembered. Each device is listed once: the same phone on a cable and on Wi-Fi is the cable. A device that is only on Wi-Fi shows its name with (Wi-Fi) after it. The serial number is not shown.
+
+Wi-Fi works for a device that was paired by cable first. The first connection over a cable switches on the device's own Wi-Fi sync setting and keeps a copy of the pairing in Hearth's own folder, readable only by the person. Settings has one switch, Connect over Wi-Fi, on by default. Off means no switch on the device, no copy, no looking on the network, and devices that are only on Wi-Fi are ignored. Turning Hearth's switch off does not turn the device's own setting back off.
 
 ## Grids
 
@@ -37,7 +39,7 @@ The plist is the layout. The note is not. Two plists that differ only by icon da
 
 Linux uses the XDG directories. macOS uses Application Support and Caches. Windows uses AppData.
 
-Hearth keeps its files in a directory named `hearth`. Pairing records stay in pymobiledevice3's directory, not in this repo.
+Hearth keeps its files in a directory named `hearth`. Pairing records stay in pymobiledevice3's directory, and Hearth keeps its own copy of each one in a `pairing` folder in its state directory, readable only by the person. None of them are in this repo.
 
 ## Send to Device
 
