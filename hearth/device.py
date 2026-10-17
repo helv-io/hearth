@@ -8,7 +8,7 @@ import plistlib
 from datetime import datetime
 from pathlib import Path
 
-from hearth import drivers, icons, wireless
+from hearth import drivers, facts, icons, wireless
 from hearth.layout import ident, is_widget, kind_of, label, monogram
 from hearth.paths import version_dir
 from hearth.screens import Screen, note_fields
@@ -162,6 +162,24 @@ async def pull(chosen, cancel, on_state, on_icon, on_progress) -> dict:
     return await _work(_pull(chosen, cancel, on_state, on_icon, on_progress))
 
 
+_FACT_ATTRIBUTES = ["CFBundleIdentifier", "StaticDiskUsage", "DynamicDiskUsage", "iTunesMetadata"]
+_FACT_SECONDS = 10
+
+
+async def _app_facts(client) -> dict:
+    """Sizes and first-obtained month for each app, read only. Any trouble gives nothing."""
+    try:
+        from pymobiledevice3.services.installation_proxy import InstallationProxyService
+
+        async def ask():
+            async with InstallationProxyService(client) as proxy:
+                return await proxy.browse(options={"ApplicationType": "User"}, attributes=_FACT_ATTRIBUTES)
+
+        return facts.summarize(await asyncio.wait_for(ask(), _FACT_SECONDS))
+    except Exception:
+        return {}
+
+
 async def _pull(chosen, cancel, on_state, on_icon, on_progress) -> dict:
     """Read the layout, then icons. Wallpaper is a separate service call.
 
@@ -181,6 +199,7 @@ async def _pull(chosen, cancel, on_state, on_icon, on_progress) -> dict:
             model = client.display_name or product
             ios = values.get("ProductVersion") or ""
             wallpaper = await _wallpaper(client, SpringBoardServicesService)
+            app_facts = await _app_facts(client)
             holder = _Springboard(client, SpringBoardServicesService)
             try:
                 state = await holder.current.get_icon_state()
@@ -192,6 +211,7 @@ async def _pull(chosen, cancel, on_state, on_icon, on_progress) -> dict:
                     "product": product,
                     "deviceClass": device_class,
                     "wallpaper": wallpaper,
+                    "facts": app_facts,
                 })
                 jobs = _icon_jobs(state)
                 phone, pending = await _phone_icons(holder, jobs, cancel, on_icon, on_progress)

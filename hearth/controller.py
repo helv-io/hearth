@@ -64,6 +64,7 @@ class _Job(QThread):
                     oauth=oauth,
                     cancel=self.cancel,
                     progress=lambda text: self.progressed.emit(text),
+                    facts=self.payload.get("facts"),
                 )
                 self.proposed.emit(proposal)
             elif self.kind == "grok":
@@ -157,6 +158,7 @@ class Controller(QObject):
         self._model_name = ""
         self._ios = ""
         self._wallpaper = ""
+        self._facts: dict = {}
         self._icons: dict[str, str] = {}
         self._icon_rev = 0
         self._selected = ""
@@ -977,6 +979,7 @@ class Controller(QObject):
             self._cancel,
             instruction=instruction,
             state=deepcopy(self._state),
+            facts=deepcopy(self._facts),
         ))
 
     def _say_model_needed(self):
@@ -1185,6 +1188,8 @@ class Controller(QObject):
         self._model_name = str(meta.get("model") or "")
         self._ios = str(meta.get("ios") or "")
         self._wallpaper = str(meta.get("wallpaper") or "")
+        given = meta.get("facts")
+        self._facts = given if isinstance(given, dict) else {}
         dock_count = len(state[0]) if isinstance(state[0], list) else 0
         chosen = screens.for_device(str(meta.get("product") or ""), str(meta.get("deviceClass") or ""))
         self._use_screen(chosen, dock_count)
