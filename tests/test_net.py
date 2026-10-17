@@ -76,3 +76,30 @@ class EveryRequestUsesItTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UserAgentTests(unittest.TestCase):
+    def test_a_request_with_no_name_goes_out_as_hearth_and_its_version(self):
+        import urllib.request
+
+        from hearth import __version__
+
+        with mock.patch("urllib.request.urlopen", return_value=reply()):
+            request = urllib.request.Request("https://example.com")
+            net.open_url(request, timeout=1)
+        self.assertEqual(request.get_header("User-agent"), f"Hearth/{__version__}")
+
+    def test_every_kind_of_request_carries_it(self):
+        from hearth import __version__
+
+        with mock.patch("urllib.request.urlopen", return_value=reply()) as opened:
+            ai._request("https://api.example.com/v1", "key", "chat/completions", {"model": "m"})
+        self.assertEqual(opened.call_args.args[0].get_header("User-agent"), f"Hearth/{__version__}")
+
+    def test_a_name_a_caller_sets_is_kept(self):
+        import urllib.request
+
+        with mock.patch("urllib.request.urlopen", return_value=reply()):
+            request = urllib.request.Request("https://example.com", headers={"User-Agent": "Other/1"})
+            net.open_url(request, timeout=1)
+        self.assertEqual(request.get_header("User-agent"), "Other/1")

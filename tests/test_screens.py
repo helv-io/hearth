@@ -114,23 +114,6 @@ class ScreenChoiceTests(unittest.TestCase):
 
 
 class StateDirTests(unittest.TestCase):
-    def test_an_existing_layout_directory_is_kept(self):
-        from hearth import paths
-
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            legacy = root / "iphone-layout"
-            legacy.mkdir()
-            env = {
-                "XDG_STATE_HOME": tmp,
-                "XDG_CONFIG_HOME": str(root / "config"),
-                "XDG_CACHE_HOME": str(root / "cache"),
-            }
-            with patch.dict(os.environ, env, clear=False):
-                self.assertEqual(paths.state_dir(), legacy)
-                self.assertFalse((root / "hearth").exists())
-                self.assertEqual(paths.version_dir(), legacy / "versions")
-
     def test_a_new_install_uses_hearth(self):
         from hearth import paths
 

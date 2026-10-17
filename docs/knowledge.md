@@ -83,7 +83,7 @@ Every read and every send writes a plist plus a JSON note. The note holds the re
 
 The icon map in the controller starts empty on every launch. `loadVersion` fills it from the icon cache on disk (`device.restore_icons`), so a version opens with its art and no device attached. An icon with no cached art falls back to the letter tile.
 
-Linux uses the XDG directories. If a `hearth` directory is missing and an `iphone-layout` directory is already there, keep using that directory. Do not create a second one. On macOS the state directory already ends in `versions`, and `version_dir()` adds another. Leave that alone.
+Linux uses the XDG directories, and every directory is named `hearth`. On macOS the state directory already ends in `versions`, and `version_dir()` adds another. Leave that alone.
 
 Tests that construct a `Controller` must patch `hearth.device.version_dir` to a temporary directory for the whole class. An unpatched controller collapses the real version directory.
 

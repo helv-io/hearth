@@ -14,7 +14,6 @@ from urllib.request import Request
 from hearth.net import open_url
 from hearth.paths import cache_dir
 
-USER_AGENT = "iphone-layout"
 
 
 def _digest(ident: str) -> str:
@@ -154,7 +153,7 @@ def _squircle(data: bytes) -> bytes:
 
 
 def _get_bytes(url: str) -> bytes:
-    request = Request(url, headers={"User-Agent": USER_AGENT})
+    request = Request(url)
     with open_url(request, timeout=15) as response:
         data = response.read()
     if len(data) < 64:
@@ -163,6 +162,6 @@ def _get_bytes(url: str) -> bytes:
 
 
 def _get_json(url: str) -> dict:
-    request = Request(url, headers={"User-Agent": USER_AGENT})
+    request = Request(url)
     with open_url(request, timeout=15) as response:
         return json.loads(response.read().decode("utf-8"))

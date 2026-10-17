@@ -37,7 +37,7 @@ The plist is the layout. The note is not. Two plists that differ only by icon da
 
 Linux uses the XDG directories. macOS uses Application Support and Caches. Windows uses AppData.
 
-If a `hearth` directory is missing and `iphone-layout` is already there, Hearth keeps using `iphone-layout`. A machine with neither gets `hearth`. Pairing records stay in pymobiledevice3's directory, not in this repo.
+Hearth keeps its files in a directory named `hearth`. Pairing records stay in pymobiledevice3's directory, not in this repo.
 
 ## Send to Device
 

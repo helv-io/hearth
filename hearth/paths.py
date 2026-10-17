@@ -1,9 +1,7 @@
 """Per-user directories. Linux uses the XDG places. Mac and Windows use the native ones.
 
-An existing iphone-layout directory is kept, so versions saved before the
-Hearth name survive. A new install uses hearth. The Darwin state path still
-ends in ``versions`` before ``version_dir`` adds another, which is how the
-older builds stored files.
+Every directory is named hearth. The Darwin state path still ends in
+``versions`` before ``version_dir`` adds another. Leave that alone.
 """
 
 from __future__ import annotations
@@ -13,20 +11,15 @@ import sys
 from pathlib import Path
 
 APP_NAME = "hearth"
-LEGACY_NAME = "iphone-layout"
 
 
 def _home() -> Path:
     return Path.home()
 
 
-def _place(fresh: Path, legacy: Path) -> Path:
-    if fresh.exists():
-        return fresh
-    if legacy.exists():
-        return legacy
-    fresh.mkdir(parents=True, exist_ok=True)
-    return fresh
+def _place(path: Path) -> Path:
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def config_dir() -> Path:
@@ -36,21 +29,20 @@ def config_dir() -> Path:
         root = _home() / "Library" / "Application Support"
     else:
         root = Path(os.environ.get("XDG_CONFIG_HOME", _home() / ".config"))
-    return _place(root / APP_NAME, root / LEGACY_NAME)
+    return _place(root / APP_NAME)
 
 
 def state_dir() -> Path:
     if sys.platform == "win32":
         root = Path(os.environ.get("LOCALAPPDATA", _home() / "AppData" / "Local"))
-        fresh, legacy = root / APP_NAME, root / LEGACY_NAME
+        path = root / APP_NAME
     elif sys.platform == "darwin":
         root = _home() / "Library" / "Application Support"
-        fresh = root / APP_NAME / "versions"
-        legacy = root / LEGACY_NAME / "versions"
+        path = root / APP_NAME / "versions"
     else:
         root = Path(os.environ.get("XDG_STATE_HOME", _home() / ".local" / "state"))
-        fresh, legacy = root / APP_NAME, root / LEGACY_NAME
-    return _place(fresh, legacy)
+        path = root / APP_NAME
+    return _place(path)
 
 
 def version_dir() -> Path:
@@ -62,14 +54,14 @@ def version_dir() -> Path:
 def cache_dir() -> Path:
     if sys.platform == "win32":
         root = Path(os.environ.get("LOCALAPPDATA", _home() / "AppData" / "Local"))
-        fresh, legacy = root / APP_NAME / "cache", root / LEGACY_NAME / "cache"
+        path = root / APP_NAME / "cache"
     elif sys.platform == "darwin":
         root = _home() / "Library" / "Caches"
-        fresh, legacy = root / APP_NAME, root / LEGACY_NAME
+        path = root / APP_NAME
     else:
         root = Path(os.environ.get("XDG_CACHE_HOME", _home() / ".cache"))
-        fresh, legacy = root / APP_NAME, root / LEGACY_NAME
-    return _place(fresh, legacy)
+        path = root / APP_NAME
+    return _place(path)
 
 
 def package_dir() -> Path:

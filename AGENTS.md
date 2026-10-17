@@ -1,6 +1,6 @@
 # Working on Hearth
 
-Hearth is a PySide6 app. The package is `hearth`. The console scripts are `hearth` and `iphone-layout`. The version lives in `hearth/__init__.py` and `pyproject.toml`, and the newest `<release>` in `packaging/linux/io.helv.Hearth.metainfo.xml` must match it. The PyInstaller spec reads it from the package. `tests/test_version.py` checks all of them and the changelog.
+Hearth is a PySide6 app. The package is `hearth`. The one console script is `hearth`. The version lives in `hearth/__init__.py` and `pyproject.toml`, and the newest `<release>` in `packaging/linux/io.helv.Hearth.metainfo.xml` must match it. The PyInstaller spec reads it from the package. `tests/test_version.py` checks all of them and the changelog.
 
 ## Checks
 
@@ -23,7 +23,7 @@ Do not pull, push, or restore a device from a test or an agent session unless th
 - `hearth/device.py` lists usbmux devices, pairs when it has to, and passes `ProductType` and `DeviceClass` up. It does not log serials or pairing records.
 - `hearth/drivers.py` owns the OS driver steps. The rule that stays: text a person reads (headline, detail, button, failure message) names no commands. The exact step lives in `Report.manual`, and the sidebar shows it only after a failure, folded away, with a Copy button. Do not pass typed text into that shell.
 - `hearth/updates.py` owns the update check: when it runs, what it sends, what the person can turn off. `tests/test_updates.py` and `tests/test_update_popup.py` state the behavior. Read them; do not copy it into prose here. The project name is `updates.REPO` only.
-- `hearth/paths.py` keeps using `iphone-layout` state, config, and cache directories when those exist and `hearth` does not. On macOS the state directory already ends in `versions`, and `version_dir()` adds another. Leave that alone.
+- `hearth/paths.py` owns the state, config, and cache directories, all named `hearth`. There is no fallback to any other name. `hearth/net.py` owns the User-Agent (`Hearth/<version>`), added to any request that sets none. `tests/test_no_old_name.py` fails if the program's former name appears anywhere but `CHANGELOG.md`. On macOS the state directory already ends in `versions`, and `version_dir()` adds another. Leave that alone.
 
 ## Releases
 

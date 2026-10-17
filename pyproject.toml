@@ -1,6 +1,6 @@
 [project]
 name = "hearth"
-version = "0.5.5"
+version = "0.5.6"
 description = "Desktop editor for an iPhone or iPad home screen."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -19,7 +19,6 @@ Issues = "https://github.com/helv-io/hearth/issues"
 
 [project.scripts]
 hearth = "hearth.__main__:main"
-iphone-layout = "hearth.__main__:main"
 
 [build-system]
 requires = ["setuptools>=68"]

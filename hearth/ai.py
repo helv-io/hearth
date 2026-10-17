@@ -280,7 +280,7 @@ def _message_text(payload: dict) -> str:
 def _build(base_url, key, path, body, oauth, anthropic, stream=False) -> Request:
     url = base_url.rstrip("/") + "/" + path.lstrip("/")
     data = None if body is None else json.dumps(body).encode("utf-8")
-    headers = {"Accept": "text/event-stream, application/json" if stream else "application/json", "User-Agent": "iphone-layout"}
+    headers = {"Accept": "text/event-stream, application/json" if stream else "application/json"}
     if data is not None:
         headers["Content-Type"] = "application/json"
     if anthropic:
