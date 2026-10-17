@@ -36,7 +36,7 @@ User-facing behavior goes in `README.md` and `docs/`. `docs/knowledge.md` is the
 
 ## Rules and what enforces them
 
-A rule that nothing enforces is a wish. Before you push, run `make test`, `ruff check .` and `.agent-checks/bin/agent-checks local` (shared `agent-checks` repo on Helvio's own git server, pinned copy in `.agent-checks/`).
+A rule that nothing enforces is a wish. Before you push, run `make test`, `ruff check .`, `scripts/check-workflow-permissions.py` and `.agent-checks/bin/agent-checks local` (shared `agent-checks` repo on Helvio's own git server, pinned copy in `.agent-checks/`).
 
 | Rule | Enforced by |
 |---|---|
@@ -48,6 +48,7 @@ A rule that nothing enforces is a wish. Before you push, run `make test`, `ruff 
 | Every build target installs from ready-made wheels | `scripts/check-wheels.py` in the `wheels` job |
 | The tag matches the version files; the release page has all four files | `gate` and `verify` jobs in `release.yml` |
 | Workflow files are valid | `actionlint` inside the `agent-checks` job |
+| A reusable workflow gets the permissions it asks for (a miss makes GitHub refuse the whole run) | `scripts/check-workflow-permissions.py` in the `lint` job |
 | A broken weekly run is seen | `alert` job opens an issue |
 | Work on a branch. Never push to master, never open a pull request unless asked | branch protection on master; Helvio or Rook merges |
 | Short, human wording in public drafts; what to build next | judgment, not enforceable |
