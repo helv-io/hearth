@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.4 — 2026-10-15
+## 0.5.4 - 2026-10-15
 
 The Mac app now has its own icon, and updates are easier to find.
 
@@ -9,7 +9,7 @@ The Mac app now has its own icon, and updates are easier to find.
 - Settings has a Check for updates button. It checks right away. If there is a newer version it shows the same card with Open download page, even for a version you skipped. If not, it says You're up to date. If Hearth cannot reach GitHub, it says so and you can try again. Only the button shows it is busy, and the rest of the app stays usable. It works even when the check on startup is off.
 - The update card now shows above Settings instead of behind it.
 
-## 0.5.3 — 2026-10-15
+## 0.5.3 - 2026-10-15
 
 Organizing no longer fails just because the model is slow, and you can cancel it.
 
@@ -22,7 +22,7 @@ Organizing no longer fails just because the model is slow, and you can cancel it
 - The answer that cannot be read as a layout now says "The model's answer could not be read as a layout. Try again."
 - Loading the model list keeps a short 30 second limit.
 
-## 0.5.2 — 2026-10-15
+## 0.5.2 - 2026-10-15
 
 Cancelling the Grok sign-in no longer breaks the app, and the sidebar is quieter.
 
@@ -31,7 +31,7 @@ Cancelling the Grok sign-in no longer breaks the app, and the sidebar is quieter
 - Real sign-in problems, such as an expired code or an account that cannot sign in, still show a plain message.
 - The sidebar no longer has a paragraph of instructions under the Read from Device and Send to Device buttons. The two gestures that are easy to miss, holding an icon at the side of the canvas to turn pages and pulling the folder handle down to close it, are now short hints that show when you hover. The README describes both. The README screenshots were retaken.
 
-## 0.5.1 — 2026-10-15
+## 0.5.1 - 2026-10-15
 
 Hearth now has a download for Intel Macs.
 
@@ -40,7 +40,7 @@ Hearth now has a download for Intel Macs.
 - Requests to a model, to Grok sign-in and to the App Store now use the same bundled certificate list as the update check, so a packaged Mac app does not fail on certificates. The built-in check confirms the list is carried.
 - Docs: `docs/packaging.md` describes the two Mac builds and the August 2027 end of GitHub's Intel Mac runners.
 
-## 0.5.0 — 2026-10-15
+## 0.5.0 - 2026-10-15
 
 Hearth tells you when a newer version is out, and the Mac download is a disk image.
 
@@ -49,7 +49,7 @@ Hearth tells you when a newer version is out, and the Mac download is a disk ima
 - Every macOS build opens its own disk image and starts the app from inside it before anything is published.
 - Hearth checks at startup whether a newer version exists. A small card says "Hearth X.Y.Z is available" with Open download page, Not now and Skip this version. It asks GitHub at most once a day and stays quiet when you are offline. Settings has a Check for updates on startup box, on by default. That request is the only thing Hearth sends on its own, and it carries nothing about you or your device.
 
-## 0.4.0 — 2026-10-15
+## 0.4.0 - 2026-10-15
 
 Windows is one small file, and the downloads are about a fifth of their old size.
 
@@ -61,7 +61,7 @@ Windows is one small file, and the downloads are about a fifth of their old size
 - Docs: the README has screenshots of a sample home screen.
 - Tests and builds: the Windows and macOS builds are their own workflows, which the release calls, and which also run on `cook/` branches. The Windows build fails if the file grows past a size limit. Details are in `docs/packaging.md`.
 
-## 0.3.0 — 2026-10-15
+## 0.3.0 - 2026-10-15
 
 Hearth notices a device, sets up the USB service for you, and shows folder pages.
 
@@ -77,11 +77,11 @@ Hearth notices a device, sets up the USB service for you, and shows folder pages
 - The GitHub Release notes come from this changelog.
 - Tests and builds: CI runs on every push to master. The macOS app takes its version from the package. The version test checks the package, `pyproject.toml`, the Linux metainfo, and this changelog.
 
-## 0.2.1 — 2026-10-15
+## 0.2.1 - 2026-10-15
 
 The Flatpak release job runs inside the KDE 6.10 builder image, which is the runtime image published for that action. The 0.2.0 job failed immediately because the plain Ubuntu runner has no `flatpak-builder`.
 
-## 0.2.0 — 2026-10-15
+## 0.2.0 - 2026-10-15
 
 First published release. The program is named Hearth.
 

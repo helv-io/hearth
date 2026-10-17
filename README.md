@@ -86,13 +86,7 @@ When the setup works you see nothing more. If it fails, the sidebar says what we
 
 ### If the button fails
 
-The sidebar then shows **Show manual steps**. It opens the exact step and a Copy button. Run it once in a terminal, and on Windows in a terminal opened as administrator.
-
-| System | Step |
-| --- | --- |
-| Windows, driver missing | `winget install -e --id Apple.AppleMobileDeviceSupport` |
-| Windows, driver stopped | `net start "Apple Mobile Device Service"` |
-| Linux | The sidebar shows the line for your distro. It installs `usbmuxd` and starts it. |
+The sidebar then shows **Show manual steps**. It opens the exact step for your system and a Copy button. Run it once in a terminal, and on Windows in a terminal opened as administrator. Then press the button again.
 
 ## Edit
 
