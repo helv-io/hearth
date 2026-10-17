@@ -23,6 +23,16 @@ ApplicationWindow {
     property string providerDocs: ""
     property bool confirmOpen: false
 
+    // A layout with gaps asks first, because Apple closes them. Anything else goes straight to the phone.
+    function trySend() {
+        if (!controller.dirty || controller.busy)
+            return
+        if (controller.sendNeedsConfirm())
+            confirmOpen = true
+        else
+            controller.push()
+    }
+
     // Closing Settings ends a sign-in that is still waiting, so nothing is left running out of sight.
     onSettingsOpenChanged: if (!settingsOpen) controller.cancelGrokSignIn()
     onProviderIsGrokChanged: if (!providerIsGrok) controller.cancelGrokSignIn()
@@ -236,7 +246,7 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+Shift+Z"; onActivated: controller.redo() }
     Shortcut { sequence: "Ctrl+R"; onActivated: if (!controller.busy) controller.pull() }
     Shortcut { sequence: "Ctrl+,"; onActivated: openSettings() }
-    Shortcut { sequence: "Ctrl+Return"; onActivated: if (controller.dirty && !controller.busy) confirmOpen = true }
+    Shortcut { sequence: "Ctrl+Return"; onActivated: trySend() }
 
     RowLayout {
         anchors.fill: parent
@@ -448,7 +458,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     text: controller.dirty ? "Send to Device" : "In sync"
                     enabled: controller.dirty && !controller.busy
-                    onClicked: confirmOpen = true
+                    onClicked: trySend()
                     background: Rectangle {
                         radius: 10
                         color: !parent.enabled ? "#1C1C22" : (parent.down ? "#0060D0" : "#0A84FF")
@@ -1210,6 +1220,7 @@ ApplicationWindow {
     }
 
     Rectangle {
+        objectName: "gapDialog"
         visible: confirmOpen
         anchors.fill: parent
         color: "#99000000"
@@ -1218,7 +1229,7 @@ ApplicationWindow {
 
         Rectangle {
             anchors.centerIn: parent
-            width: 420
+            width: 340
             height: confirmColumn.height + 36
             radius: 16
             color: "#16161A"
@@ -1231,19 +1242,26 @@ ApplicationWindow {
                 y: 18
                 width: parent.width - 36
                 spacing: 12
-                Text { text: "Send this layout?"; color: "white"; font.pixelSize: 18; font.bold: true }
                 Text {
+                    objectName: "gapHeadline"
+                    text: "Apple closes gaps."
+                    color: "#FF453A"
+                    font.pixelSize: 18
+                    font.bold: true
+                }
+                Text {
+                    objectName: "gapLine"
                     width: parent.width
                     wrapMode: Text.WordWrap
-                    text: "This replaces the home screen on the connected iPhone or iPad. A backup is saved first. The device is read back, and if the layout does not stick the previous one is restored."
-                        + (controller.hasHoles ? " Gaps on a page stay in this editor. Sending closes them, because the phone's layout list has no empty cells." : "")
+                    text: "Items move up to fill empty cells."
                     color: "#C7C7CC"
                     font.pixelSize: 13
                 }
                 Row {
                     spacing: 8
                     Button {
-                        text: "Send to Device"
+                        objectName: "gapSend"
+                        text: "Send"
                         onClicked: { confirmOpen = false; controller.push() }
                         background: Rectangle { radius: 8; color: "#0A84FF" }
                         contentItem: Text { text: parent.text; color: "white"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; leftPadding: 16; rightPadding: 16 }

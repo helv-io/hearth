@@ -237,6 +237,11 @@ class Controller(QObject):
 
     hasHoles = Property(bool, _has_holes, notify=layoutChanged)
 
+    @Slot(result=bool)
+    def sendNeedsConfirm(self):
+        """Only a layout with gaps is worth a question. Anything else is sent as it is."""
+        return self._has_holes()
+
     def _device(self):
         return self._device_name
 

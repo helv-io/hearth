@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.5 - 2026-10-17
+
+Send to Device no longer asks a long question. Most of the time it does not ask at all.
+
+- With no gaps on the canvas, Send goes straight to the phone. There is no pop-up.
+- With a gap, a small pop-up appears. The first line is red: Apple closes gaps. The second says: Items move up to fill empty cells. Then Send or Cancel.
+- Hearth only knows about a gap you made on the canvas. Apple does not tell Hearth where the empty cells on your phone are, so a layout read from the phone always shows as packed.
+- The check lives in one function, so the window and the tests use the same rule. Sending, the backup, the read back and the restore are unchanged.
+
 ## 0.6.4 - 2026-10-17
 
 On Linux, the Flatpak now sets up the USB service with one button. Before, it told you to install it yourself.

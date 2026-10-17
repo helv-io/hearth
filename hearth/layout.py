@@ -751,9 +751,15 @@ def strip_positions(state: State) -> None:
                 item.pop(POS_COL, None)
 
 
-def has_holes(state: State) -> bool:
-    """True when some icon sits past an empty cell. Trailing space is not a hole."""
-    for page in state[1:]:
+def gaps_before_send(state: State) -> list[int]:
+    """Pages where a Send will move something, as page numbers counted from 1.
+
+    The phone takes a page as a list in order and has no empty cells, so a page changes on Send when an item
+    sits past a free cell. A widget covers all of its cells, so those are not free. Space after the last item
+    is not a gap. A page with no gap goes to the phone exactly as it is laid out here.
+    """
+    pages: list[int] = []
+    for number, page in enumerate(state[1:], start=1):
         positions = _positions_of(page)
         if not positions:
             continue
@@ -768,8 +774,13 @@ def has_holes(state: State) -> bool:
                 for c in range(col, col + width):
                     covered.add(r * columns + c)
         if any(index not in covered for index in range(last_origin)):
-            return True
-    return False
+            pages.append(number)
+    return pages
+
+
+def has_holes(state: State) -> bool:
+    """True when a Send would close a gap on any page."""
+    return bool(gaps_before_send(state))
 
 
 def fingerprint(state: State) -> str:
