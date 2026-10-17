@@ -108,7 +108,7 @@ The sidebar then shows **Show manual steps**. It opens the exact step for your s
 
 Model list and file locations: [docs/devices.md](docs/devices.md).
 
-While you drag, Hearth outlines every cell the item will cover. Blue means it fits there. Red means it does not. A widget is placed by its own corner, wherever you grab it, and one held past the edge lands against the edge. Pages keep empty cells. Drop an icon on an empty cell and the gap stays. Drop it on the side of another icon and only the icons up to the next gap shift. Send to Device closes gaps, because the device's icon list has no empty cells. The confirm step says so when the canvas has gaps.
+While you drag, Hearth outlines every cell the item will cover. Blue means it fits there. Red means it does not. A widget is placed by its own corner, wherever you grab it, and one held past the edge lands against the edge. Pages keep empty cells. Drop an icon on an empty cell and the gap stays. Drop it on the side of another icon and only the icons up to the next gap shift. Send to Device closes gaps, because Apple's icon list has no empty cells. When the canvas has a gap, Hearth asks first, with a short red note that Apple closes gaps. With no gap, it sends straight away.
 
 Folders stay packed, nine apps to a page. Two or more pages show that count in a red badge on the folder. One page does not.
 
@@ -128,7 +128,7 @@ Hearth does not choose a model for you. Pick a provider, connect it, and choose 
 
 Other providers: OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, Groq, OpenRouter, Ollama, LM Studio, and a custom OpenAI-compatible endpoint. Anthropic uses its Messages API. The rest use chat completions.
 
-The model proposes a layout. Apply puts it on the canvas. Send to Device is a separate step, and it asks first.
+The model proposes a layout. Apply puts it on the canvas. Send to Device is a separate step. It sends at once, and asks first only when the canvas has gaps.
 
 Slow models are fine. The answer arrives as the model writes it, and the status line counts the characters so far. Hearth only gives up when the model has gone quiet: for 3 minutes before it starts writing, or for 1 minute once it has started. An answer that keeps coming is never cut off for being slow, apart from a 10 minute limit on the whole thing. A message says plainly where it stopped and for how long. A provider that cannot stream is asked again without streaming. Hearth asks for low reasoning, which is enough for this job and makes models that think first answer sooner. A provider that does not accept that is asked again without it, and Hearth remembers that until you close it.
 

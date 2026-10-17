@@ -157,7 +157,7 @@ class DragGestureTests(unittest.TestCase):
         self.assertIn("instructionView.availableWidth", main)
         self.assertIn("Write a little or a lot.", main)
         self.assertIn('text: "Read from Device"', main)
-        self.assertIn('text: "Send to Device"', main)
+        self.assertIn('controller.dirty ? "Send to Device" : "In sync"', main)
         self.assertIn("refreshDevice", main)
 
     def test_qml_files_compile(self):
