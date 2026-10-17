@@ -151,7 +151,6 @@ def fetch_tags() -> list[str]:
         TAGS_URL,
         headers={
             "Accept": "application/vnd.github+json",
-            "User-Agent": f"Hearth/{__version__}",
         },
     )
     try:

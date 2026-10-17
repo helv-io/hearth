@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.6 - 2026-10-17
+
+The old name is gone. This is a cleanup, and nothing changes in how the editor works.
+
+- The old command is gone. Start Hearth with `hearth`.
+- The old data folders are gone. Hearth now only uses folders named `hearth` for saved versions, settings and downloaded icons. If an older folder with the previous program name is still on your computer, Hearth does not open it and does not delete it. Your saved versions in it will not show up. To keep them, move the folder's contents into the `hearth` folder.
+- Every request Hearth makes now says it comes from Hearth and which version. Before, some said the old name.
+- A new test fails if the old name shows up anywhere in the project outside this changelog.
+
 ## 0.5.5 - 2026-10-16
 
 Hearth no longer picks a model for you.

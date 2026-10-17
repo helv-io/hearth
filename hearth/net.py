@@ -13,6 +13,11 @@ import ssl
 import urllib.request
 from functools import lru_cache
 
+from hearth import __version__
+
+# The one name Hearth gives every website it talks to.
+USER_AGENT = f"Hearth/{__version__}"
+
 
 @lru_cache(maxsize=1)
 def secure_context() -> ssl.SSLContext:
@@ -31,5 +36,8 @@ def open_url(request: urllib.request.Request, *, timeout: float):
 
     `timeout` is how long the connection and each read may stay silent, in seconds. The caller closes the reply.
     A ruff rule (TID251 in pyproject.toml) stops anything else from calling urlopen.
+    A request that sets no User-Agent of its own is sent as Hearth/<version>.
     """
+    if not request.has_header("User-agent"):
+        request.add_header("User-Agent", USER_AGENT)
     return urllib.request.urlopen(request, timeout=timeout, context=secure_context())

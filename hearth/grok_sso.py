@@ -257,7 +257,6 @@ def _post_form(url: str, form: dict, timeout: float = FORM_TIMEOUT) -> tuple[int
     request = Request(url, data=data, method="POST", headers={
         "Content-Type": "application/x-www-form-urlencoded",
         "Accept": "application/json",
-        "User-Agent": "iphone-layout",
     })
     try:
         with open_url(request, timeout=timeout) as response:
