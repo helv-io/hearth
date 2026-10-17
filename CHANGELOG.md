@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.5 - 2026-10-16
+
+Hearth no longer picks a model for you.
+
+- There is no built-in model. Grok is a fine choice, and so are the other providers. After you connect one, Organize shows a Pick a model list, and your choice is remembered. Until you have connected, it shows Connect a provider.
+- The list is the provider's own, fetched when Hearth starts and when you save Settings. If you are offline, the last list is still there.
+- Reorganize with no model chosen says Pick a model first, or Connect a provider to pick a model. It does not send anything to the provider, so there is no confusing error.
+- Changing the provider in Settings clears the model, because a model name belongs to the provider it came from.
+- If you already chose a model, nothing changes for you.
+
 ## 0.5.4 - 2026-10-15
 
 The Mac app now has its own icon, and updates are easier to find.

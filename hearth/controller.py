@@ -84,6 +84,20 @@ class _Job(QThread):
             self.failed.emit(device.friendly(exc))
 
 
+class _ListJob(QThread):
+    """Fetches the model list in the background so the picker is ready. It never raises and says nothing
+    when it cannot: the list from last time stays, and Organize explains what is missing."""
+
+    found = Signal(str, object)
+
+    def run(self):
+        try:
+            config, preset, key, oauth = presets.resolve()
+            self.found.emit(config["base_url"], ai.list_models(config["base_url"], key, adapter=preset["adapter"], oauth=oauth))
+        except Exception:
+            pass
+
+
 class _UpdateJob(QThread):
     """Asks for the newest version in the background. It never raises and never says why it failed."""
 
@@ -146,7 +160,8 @@ class Controller(QObject):
         self._selected = ""
         self._drag = ""
         self._config = settings.load()
-        self._models: list[str] = []
+        self._models: list[str] = settings.last_models(self._config["base_url"])
+        self._list_job: _ListJob | None = None
         self._versions = device.list_versions()
         self._proposal = None
         self._proposal_lines: list[str] = []
@@ -381,6 +396,14 @@ class Controller(QObject):
         return bool(self._config.get("has_key"))
 
     hasKey = Property(bool, _has_key, notify=settingsChanged)
+
+    def _model_need(self):
+        """What the person has to do before Organize can run: nothing, pick one, or connect first."""
+        if self._config["model"]:
+            return ""
+        return "pick" if self._models else "connect"
+
+    modelNeed = Property(str, _model_need, notify=settingsChanged)
 
     def _model_choices(self):
         choices = list(self._models)
@@ -755,12 +778,41 @@ class Controller(QObject):
             forget_key=forget,
             provider=provider or "grok",
         )
+        self._models = settings.last_models(self._config["base_url"])
         self.settingsChanged.emit()
         self._set_status("LLM settings saved.", False)
+        self.refreshModelsQuietly()
+
+    @Slot(str)
+    def chooseModel(self, name: str):
+        """Remember the model picked in Organize. Nothing else about the settings changes."""
+        name = (name or "").strip()
+        if not name:
+            return
+        self._config = settings.save(
+            self._config["base_url"], name, None, provider=self._config.get("provider") or "grok",
+        )
+        self.settingsChanged.emit()
 
     @Slot()
     def refreshModels(self):
         self._start(_Job("models", self._cancel))
+
+    @Slot()
+    def refreshModelsQuietly(self):
+        """Get the model list without a word, so the picker has something to show. A failure changes nothing."""
+        if self._list_job is not None and self._list_job.isRunning():
+            return
+        job = _ListJob()
+        job.found.connect(self._on_models_quietly)
+        self._list_job = job
+        job.start()
+
+    def _on_models_quietly(self, base_url: str, found: list):
+        settings.remember_models(base_url, found)
+        if settings._endpoint(base_url) == settings._endpoint(self._config["base_url"]):
+            self._models = settings.last_models(base_url)
+            self.settingsChanged.emit()
 
     @Slot()
     def startGrokSignIn(self):
@@ -820,12 +872,27 @@ class Controller(QObject):
         if not self._state or not any(self._state[1:]):
             self._set_status("Read a home screen first.", True)
             return
+        if not self._config["model"]:
+            self._say_model_needed()
+            return
         self._start(_Job(
             "propose",
             self._cancel,
             instruction=instruction,
             state=deepcopy(self._state),
         ))
+
+    def _say_model_needed(self):
+        if self._models:
+            self._set_status("Pick a model first.", True)
+            return
+        try:
+            presets.resolve()
+        except RuntimeError:
+            self._set_status("Connect a provider to pick a model.", True)
+            return
+        self.refreshModelsQuietly()
+        self._set_status("Hearth can't get the model list right now. Check your connection.", True)
 
     @Slot()
     def applyProposal(self):
@@ -869,6 +936,10 @@ class Controller(QObject):
         for job in (self._update_job, self._update_now_job):
             if job is not None and job.isRunning():
                 job.wait(updates.TIMEOUT_SECONDS * 1000 + 1000)
+        if self._list_job is not None and self._list_job.isRunning():
+            if not self._list_job.wait(SHUTDOWN_WAIT_MS):
+                self._list_job.terminate()
+                self._list_job.wait(SHUTDOWN_WAIT_MS)
 
     # --- internals ------------------------------------------------------
 
@@ -1101,11 +1172,13 @@ class Controller(QObject):
         self.settingsChanged.emit()
         if result == "ok":
             self._set_status("Signed in to Grok.", False)
+            self.refreshModelsQuietly()
         elif result == "cancelled" and self._status != "Signed out of Grok.":
             self._set_status("Grok sign-in cancelled.", False)
 
     def _on_models(self, found: list):
-        self._models = list(found)
+        settings.remember_models(self._config["base_url"], found)
+        self._models = list(found) or settings.last_models(self._config["base_url"])
         self.settingsChanged.emit()
         self._set_status(f"{len(found)} models.", False)
 

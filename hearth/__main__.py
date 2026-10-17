@@ -123,6 +123,7 @@ def main() -> int:
         return 1
     app.aboutToQuit.connect(controller.shutdown)
     controller.startUpdateCheck()
+    controller.refreshModelsQuietly()
     return app.exec()
 
 
