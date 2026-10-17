@@ -57,7 +57,7 @@ Hearth sets the Basic style and imports only Qt Quick, Controls and Layouts. If 
 
 ## Linux Flatpak
 
-The manifest is `packaging/flatpak/io.helv.Hearth.yml`. The runtime is `org.kde.Platform` 6.10, which supplies Qt 6. The release job uses the matching `ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10` image, because that image is what actually contains `flatpak-builder`. pip installs Hearth and its dependencies into the sandbox. The finish arguments open Wayland, a fallback X11 socket, the network (icon downloads and Grok sign-in), USB, and the host usbmux socket at `/run/usbmuxd`. On Arch, `/var/run` is a symlink to `/run`, and a second permission on `/var/run/usbmuxd` makes bubblewrap refuse to start the sandbox. `--talk-name=org.freedesktop.Flatpak` lets the install button run `flatpak-spawn --host pkexec …` so usbmuxd is installed on the host. That command is chosen by Hearth. It is not a free shell. The commands live in `hearth/drivers.py`. They never appear in the sidebar until a button has failed, and then only as the folded manual steps.
+The manifest is `packaging/flatpak/io.helv.Hearth.yml`. The runtime is `org.kde.Platform` 6.10, which supplies Qt 6. PySide6 comes from the Flathub base app `io.qt.PySide.BaseApp` 6.10, built against that runtime. Do not install PySide6 from PyPI here: its wheel carries a second copy of Qt that needs `libgssapi_krb5`, which the runtime lacks, and 0.6.1 shipped a Flatpak that could not start because of it. The manifest installs `pymobiledevice3` on its own and Hearth with `--no-deps`; a test keeps that line in step with `pyproject.toml`. The release job uses the matching `ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10` image, because that image is what actually contains `flatpak-builder`. pip installs the other dependencies and Hearth into the sandbox. The finish arguments open Wayland, a fallback X11 socket, the network (icon downloads and Grok sign-in), USB, and the host usbmux socket at `/run/usbmuxd`. On Arch, `/var/run` is a symlink to `/run`, and a second permission on `/var/run/usbmuxd` makes bubblewrap refuse to start the sandbox. `--talk-name=org.freedesktop.Flatpak` lets the install button run `flatpak-spawn --host pkexec …` so usbmuxd is installed on the host. That command is chosen by Hearth. It is not a free shell. The commands live in `hearth/drivers.py`. They never appear in the sidebar until a button has failed, and then only as the folded manual steps.
 
 Install a bundle with:
 
@@ -89,5 +89,7 @@ python3 -m venv .venv
 .venv/bin/pip install -e .
 make test
 ```
+
+`.github/workflows/flatpak.yml` builds the bundle, installs it with `flatpak install --bundle`, and starts it with no screen (`import hearth.__main__`, then `hearth --selftest`, which must print `ok`). The release workflow calls it and attaches the file only after it passed. It also runs on pull requests that touch the manifest and on `cook/**` branches.
 
 A full Flatpak build needs `flatpak-builder` and the KDE SDK. It is large. CI is the place that produces the bundle.

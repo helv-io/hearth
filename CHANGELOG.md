@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.2 - 2026-10-17
+
+The Linux app starts again. The 0.6.1 Flatpak did not open at all: it stopped at launch with a message about a missing library, libgssapi_krb5.
+
+- The cause: the Flatpak carried its own copy of Qt, which needs a library that the Linux runtime does not include. That copy changed when a newer PySide6 came out on 8 October, and nothing in the build ever started the app, so the break shipped. The Windows and Mac builds already start the app before they are released.
+- Now the Flatpak uses the Qt that matches its runtime, from the PySide6 base app, so the library is not needed and the app is much smaller to download.
+- The Flatpak build now installs the file the way a person would and starts it with no screen. If it does not start, the build fails and nothing is released.
+- Nothing else changes. If you installed 0.6.1 from Flatpak, install this one over it.
+
 ## 0.6.1 - 2026-10-17
 
 Dragging a widget now works from anywhere on it, and you can see where it will land.

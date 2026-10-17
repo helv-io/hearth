@@ -80,25 +80,22 @@ jobs:
 
   flatpak:
     needs: [test, notes]
+    uses: ./.github/workflows/flatpak.yml
+
+  flatpak-publish:
+    needs: flatpak
     runs-on: ubuntu-latest
-    timeout-minutes: 120
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
-      options: --privileged
     steps:
-      - uses: actions/checkout@v4
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+      - uses: actions/download-artifact@v4
         with:
-          bundle: hearth.flatpak
-          manifest-path: packaging/flatpak/io.helv.Hearth.yml
-          cache-key: flatpak-kde-6.10
+          name: hearth.flatpak
       - uses: softprops/action-gh-release@v2
         with:
           files: hearth.flatpak
 
   # Last: the release page must hold all four files. A tag that ends with a page missing one is not a release.
   verify:
-    needs: [windows-publish, macos-publish, flatpak]
+    needs: [windows-publish, macos-publish, flatpak-publish]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
