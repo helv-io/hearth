@@ -9,7 +9,15 @@ permissions:
   contents: write
 
 jobs:
+  # First, before anything is built or published: every file that repeats the version must match the tag.
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 .agent-checks/bin/agent-checks release-version "$GITHUB_REF_NAME"
+
   test:
+    needs: gate
     uses: ./.github/workflows/ci.yml
 
   notes:
@@ -82,3 +90,13 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: hearth.flatpak
+
+  # Last: the release page must hold all four files. A tag that ends with a page missing one is not a release.
+  verify:
+    needs: [windows-publish, macos-publish, flatpak]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 .agent-checks/bin/agent-checks release-assets "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" Hearth-windows.exe Hearth-macos.dmg Hearth-macos-intel.dmg hearth.flatpak
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
