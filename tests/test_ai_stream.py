@@ -349,7 +349,7 @@ class ModelCallTests(unittest.TestCase):
             def read(self):
                 return b'{"data":[{"id":"b"},{"id":"a"}]}'
 
-        with patch("hearth.ai.urlopen", return_value=Reply()) as opened:
+        with patch("urllib.request.urlopen", return_value=Reply()) as opened:
             self.assertEqual(ai.list_models("https://api.example.com/v1", "key"), ["a", "b"])
         self.assertEqual(opened.call_args.kwargs["timeout"], ai.LIST_TIMEOUT)
         self.assertLessEqual(ai.LIST_TIMEOUT, 60)

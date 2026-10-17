@@ -9,7 +9,7 @@ from hearth.paths import config_dir
 from hearth.presets import by_id, match_base
 
 DEFAULT_BASE = "https://api.x.ai/v1"
-DEFAULT_MODEL = "grok-4.7"
+DEFAULT_MODEL = "grok-4.7"  # model-id-ok: Helvio decides whether the first run asks instead, until 2026-12-31
 DEFAULT_PROVIDER = "grok"
 
 

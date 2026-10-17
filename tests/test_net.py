@@ -52,24 +52,24 @@ class EveryRequestUsesItTests(unittest.TestCase):
         self.assertIs(opened.call_args.kwargs["context"], net.secure_context())
 
     def test_model_requests(self):
-        with mock.patch("hearth.ai.urlopen", return_value=reply()) as opened:
+        with mock.patch("urllib.request.urlopen", return_value=reply()) as opened:
             ai._request("https://api.example.com/v1", "key", "chat/completions", {"model": "m"})
         self.assert_secure(opened)
 
     def test_grok_sign_in_requests(self):
-        with mock.patch("hearth.grok_sso.urlopen", return_value=reply()) as opened:
+        with mock.patch("urllib.request.urlopen", return_value=reply()) as opened:
             grok_sso.endpoints()
         self.assert_secure(opened)
-        with mock.patch("hearth.grok_sso.urlopen", return_value=reply()) as opened:
+        with mock.patch("urllib.request.urlopen", return_value=reply()) as opened:
             grok_sso._post_form("https://auth.example.com/token", {"a": "b"})
         self.assert_secure(opened)
 
     def test_app_store_art_requests(self):
         png = b"x" * 100
-        with mock.patch("hearth.icons.urlopen", return_value=reply(png)) as opened:
+        with mock.patch("urllib.request.urlopen", return_value=reply(png)) as opened:
             icons._get_bytes("https://example.com/a.png")
         self.assert_secure(opened)
-        with mock.patch("hearth.icons.urlopen", return_value=reply(json.dumps({}).encode())) as opened:
+        with mock.patch("urllib.request.urlopen", return_value=reply(json.dumps({}).encode())) as opened:
             icons._get_json("https://itunes.apple.com/lookup?bundleId=x")
         self.assert_secure(opened)
 

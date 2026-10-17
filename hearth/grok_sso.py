@@ -12,9 +12,9 @@ import time
 from threading import Event
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
-from hearth.net import secure_context
+from hearth.net import open_url
 from hearth.paths import config_dir
 
 CLIENT_ID = "b1a00492-073a-47ea-816f-4c329264a828"
@@ -51,7 +51,7 @@ def endpoints(timeout: float = LOOKUP_TIMEOUT) -> dict:
     found = _fallback_endpoints()
     try:
         request = Request(ISSUER + "/.well-known/openid-configuration", headers={"Accept": "application/json"})
-        with urlopen(request, timeout=timeout, context=secure_context()) as response:
+        with open_url(request, timeout=timeout) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except (OSError, URLError, json.JSONDecodeError, TimeoutError):
         return found
@@ -260,7 +260,7 @@ def _post_form(url: str, form: dict, timeout: float = FORM_TIMEOUT) -> tuple[int
         "User-Agent": "iphone-layout",
     })
     try:
-        with urlopen(request, timeout=timeout, context=secure_context()) as response:
+        with open_url(request, timeout=timeout) as response:
             raw = response.read().decode("utf-8")
             status = response.status
     except HTTPError as exc:

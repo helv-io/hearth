@@ -1,4 +1,4 @@
-"""One certificate setup for every request Hearth makes.
+"""The one place Hearth opens a web connection, with one certificate setup for every request.
 
 A Python bundled into an app on macOS may not find the system certificate list,
 which would make every request to a model, to Grok sign-in, to the App Store
@@ -10,6 +10,7 @@ system already trusts keeps working.
 from __future__ import annotations
 
 import ssl
+import urllib.request
 from functools import lru_cache
 
 
@@ -23,3 +24,12 @@ def secure_context() -> ssl.SSLContext:
     except Exception:
         pass  # certifi missing or unreadable: the system list alone
     return context
+
+
+def open_url(request: urllib.request.Request, *, timeout: float):
+    """Open a request. Every web request in Hearth goes through here, so none can skip the certificate list.
+
+    `timeout` is how long the connection and each read may stay silent, in seconds. The caller closes the reply.
+    A ruff rule (TID251 in pyproject.toml) stops anything else from calling urlopen.
+    """
+    return urllib.request.urlopen(request, timeout=timeout, context=secure_context())

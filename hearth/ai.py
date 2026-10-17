@@ -21,11 +21,11 @@ from http.client import HTTPException
 from threading import Event
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
 from hearth.grok_sso import CLI_HEADERS, FALLBACK_BASE
 from hearth.layout import active_screen, catalog, current_outline, proposal_from_text
-from hearth.net import secure_context
+from hearth.net import open_url
 
 # Silence before the first word, silence between words, and the most time one answer may take.
 FIRST_IDLE = 180.0
@@ -316,7 +316,7 @@ def _request(base_url: str, key: str, path: str, body: dict | None, oauth: bool 
     """One plain request and its whole JSON reply, with a short limit."""
     request = _build(base_url, key, path, body, oauth, anthropic)
     try:
-        with urlopen(request, timeout=timeout, context=secure_context()) as response:
+        with open_url(request, timeout=timeout) as response:
             return json.loads(response.read().decode("utf-8"))
     except Exception as exc:
         raise _translate(exc, timeout) from exc
@@ -400,7 +400,7 @@ def _exchange(base_url, key, path, body, oauth, anthropic, cancel, progress, lim
         raise Cancelled()
     started = time.monotonic()
     try:
-        response = urlopen(request, timeout=limits.first, context=secure_context())
+        response = open_url(request, timeout=limits.first)
     except Exception as exc:
         if cancel.is_set():
             raise Cancelled() from exc

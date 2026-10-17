@@ -30,3 +30,18 @@ include = ["hearth*"]
 
 [tool.setuptools.package-data]
 hearth = ["qml/*"]
+
+# One door for web requests: every request goes through hearth.net.open_url, which owns the certificate list.
+# 5fda384 and b45ca90 each had to patch the same four modules because each opened its own connection.
+[tool.ruff]
+target-version = "py311"
+exclude = [".agent-checks", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["TID251"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"urllib.request.urlopen".msg = "Use hearth.net.open_url(); it owns the certificate list for every web request."
+
+[tool.ruff.lint.per-file-ignores]
+"hearth/net.py" = ["TID251"]

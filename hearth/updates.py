@@ -15,7 +15,7 @@ import urllib.request
 from dataclasses import dataclass
 
 from hearth import __version__
-from hearth.net import secure_context
+from hearth.net import open_url
 from hearth.paths import config_dir
 
 # The one place that names the project. Everything below is built from it.
@@ -155,7 +155,7 @@ def fetch_tags() -> list[str]:
         },
     )
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS, context=secure_context()) as reply:
+        with open_url(request, timeout=TIMEOUT_SECONDS) as reply:
             data = json.loads(reply.read(2_000_000).decode("utf-8"))
     except urllib.error.HTTPError as error:
         raise ValueError(f"GitHub answered {error.code}") from error
