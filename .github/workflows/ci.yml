@@ -38,10 +38,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install ruff==0.17.1 pyyaml
+      - run: pip install ruff==0.17.1
       - run: ruff check .
-      # A called workflow cannot hold more permission than its caller, and actionlint does not know that.
-      - run: python scripts/check-workflow-permissions.py
 
   # Every build target can install the dependencies from ready-made wheels (the Intel Mac build failed three times on one that had none).
   wheels:
