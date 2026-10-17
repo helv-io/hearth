@@ -570,6 +570,25 @@ class Controller(QObject):
     def beginDrag(self, source: str):
         self._drag = source
 
+    @Slot(str, result="QVariant")
+    def spanOf(self, source: str):
+        """Columns and rows the dragged item covers. Anything unknown covers one cell."""
+        try:
+            width, height = layout.span(layout._object_at(self._state, source))
+        except (KeyError, IndexError, ValueError):
+            width, height = 1, 1
+        return {"w": width, "h": height}
+
+    @Slot(str, str, result="QVariant")
+    def footprintFor(self, source: str, target: str):
+        """Every cell the item would cover if dropped on `target`, and whether that works."""
+        return layout.placement(self._state, source, target)
+
+    @Slot(str, int, float, float, result="QVariant")
+    def dropFor(self, source: str, page: int, left: float, top: float):
+        """The drop for an item held with its top-left corner at (left, top) cells on a page."""
+        return layout.drop_for(self._state, source, page, left, top)
+
     @Slot(str, str)
     def move(self, source: str, target: str):
         if self._busy or not source or not target:

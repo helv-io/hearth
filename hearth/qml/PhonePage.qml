@@ -10,6 +10,12 @@ Item {
     property string selected: ""
     property string query: ""
     property var dragApi
+    // The cells the item being dragged would cover, from the model: {page, cells, valid, w, h}.
+    property var footprint: ({})
+    // A widget covers several cells. The insert bar is for one-cell items.
+    readonly property bool bigDrag: !!(root.footprint && ((root.footprint.w || 1) > 1 || (root.footprint.h || 1) > 1))
+    readonly property real strideX: grid.cw + grid.gap
+    readonly property real strideY: grid.ch + grid.gap
 
     // iPhone default: 15 Pro Max body, 76.7 × 159.9 mm, drawn at 390 × 812.
     // An iPad passes its own chassis. One device still fills the stage.
@@ -37,6 +43,16 @@ Item {
         const lx = local.x - faceLeft
         const ly = local.y - faceTop
         return lx >= face * 0.25 && lx <= face * 0.75 && ly >= face * 0.25 && ly <= face * 0.75
+    }
+
+    // Where a point is on this page's grid, in cells and fractions of a cell. Null off the phone or over the dock.
+    function gridPoint(scenePoint) {
+        if (!chassis.contains(chassis.mapFromItem(null, scenePoint.x, scenePoint.y)))
+            return null
+        if (dockBar.contains(dockBar.mapFromItem(null, scenePoint.x, scenePoint.y)))
+            return null
+        const local = grid.mapFromItem(null, scenePoint.x, scenePoint.y)
+        return Qt.point(local.x / strideX, local.y / strideY)
     }
 
     function targetAt(scenePoint, grouping) {
@@ -186,28 +202,6 @@ Item {
                         property real ch: (height - (rowCount - 1) * gap) / rowCount
 
                         Repeater {
-                            model: root.page.cells
-                            delegate: Item {
-                                required property var modelData
-                                x: modelData.col * (grid.cw + grid.gap)
-                                y: modelData.row * (grid.ch + grid.gap)
-                                width: grid.cw
-                                height: grid.ch
-                                // Same square the app icon uses. The cell itself is taller, for the name.
-                                Rectangle {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    anchors.top: parent.top
-                                    width: Math.min(parent.width, Math.max(1, parent.height - 18 * root.u))
-                                    height: width
-                                    radius: width * 0.2237
-                                    color: root.hot === modelData.target ? "#3A0A84FF" : "transparent"
-                                    border.width: root.hot === modelData.target ? Math.max(1, root.u) : 0
-                                    border.color: "#0A84FF"
-                                }
-                            }
-                        }
-
-                        Repeater {
                             model: root.page.tiles
                             delegate: Item {
                                 id: tile
@@ -334,7 +328,7 @@ Item {
                                 }
 
                                 Rectangle {
-                                    visible: root.hot !== "" && root.hot === modelData.insert
+                                    visible: root.hot !== "" && root.hot === modelData.insert && !root.bigDrag
                                     z: 4
                                     width: Math.max(3, 4 * root.u)
                                     height: Math.max(8, face.height * 0.62)
@@ -346,7 +340,7 @@ Item {
                                     anchors.horizontalCenterOffset: -grid.gap / 2
                                 }
                                 Rectangle {
-                                    visible: root.hot !== "" && modelData.after && root.hot === modelData.after && modelData.after !== modelData.insert
+                                    visible: root.hot !== "" && modelData.after && root.hot === modelData.after && modelData.after !== modelData.insert && !root.bigDrag
                                     z: 4
                                     width: Math.max(3, 4 * root.u)
                                     height: Math.max(8, face.height * 0.62)
@@ -388,6 +382,33 @@ Item {
                                     ident: modelData.ident
                                     kind: modelData.kind
                                 }
+                            }
+                        }
+                    }
+
+                    // Every cell the dragged item will cover. Blue works, red does not.
+                    Item {
+                        id: footprintLayer
+                        objectName: "footprint:" + root.page.index
+                        x: grid.x
+                        y: grid.y
+                        width: grid.width
+                        height: grid.height
+                        z: 5
+                        property var cells: root.footprint && root.footprint.page === root.page.index ? (root.footprint.cells || []) : []
+                        property bool valid: !!(root.footprint && root.footprint.valid)
+                        Repeater {
+                            model: footprintLayer.cells
+                            delegate: Rectangle {
+                                required property var modelData
+                                x: modelData[1] * root.strideX
+                                y: modelData[0] * root.strideY
+                                width: grid.cw
+                                height: grid.ch
+                                radius: 12 * root.u
+                                color: footprintLayer.valid ? "#330A84FF" : "#33FF453A"
+                                border.width: Math.max(1, 2 * root.u)
+                                border.color: footprintLayer.valid ? "#0A84FF" : "#FF453A"
                             }
                         }
                     }

@@ -14,6 +14,7 @@ ApplicationWindow {
 
     property bool groupMode: false
     property string hot: ""
+    property var footprint: ({})
     property bool settingsOpen: false
     property bool fillingSettings: false
     property bool providerIsGrok: false
@@ -70,6 +71,7 @@ ApplicationWindow {
 
     function hit(x, y) {
         const point = Qt.point(x, y)
+        drag.foot = null
         if (tray.blocks(point))
             return tray.targetAt(point)
         for (let i = 0; i < phones.count; i++) {
@@ -77,6 +79,20 @@ ApplicationWindow {
             const phone = slot ? slot.phone : null
             if (!phone)
                 continue
+            if (drag.active && (drag.spanW > 1 || drag.spanH > 1)) {
+                // A wide or tall item lands where its own corner is, not where the pointer is.
+                const cell = phone.gridPoint(point)
+                if (cell) {
+                    const left = cell.x - drag.footX / phone.strideX
+                    const top = cell.y - drag.footY / phone.strideY
+                    const found = controller.dropFor(ghost.source, phone.page.index, left, top)
+                    if (found.target) {
+                        drag.foot = found
+                        return found.target
+                    }
+                    continue
+                }
+            }
             const target = phone.targetAt(point, groupMode)
             if (target)
                 return target
@@ -86,12 +102,25 @@ ApplicationWindow {
 
     QtObject {
         id: drag
+        objectName: "dragState"
         property bool active: false
         property real pointerX: 0
         property real pointerY: 0
         signal aborted()
 
+        // What the dragged item covers, and where in its footprint it is held (pixels).
+        property int spanW: 1
+        property int spanH: 1
+        property real footX: 0
+        property real footY: 0
+        property var foot: null
+
         function begin(source, letter, ident, kind, x, y, sample, holdX, holdY) {
+            const covers = controller.spanOf(source)
+            spanW = covers.w || 1
+            spanH = covers.h || 1
+            footX = holdX + (sample && sample.x ? sample.x : 0)
+            footY = holdY + (sample && sample.y ? sample.y : 0)
             ghost.letter = letter || ""
             ghost.ident = ident || ""
             ghost.kind = kind || "app"
@@ -122,6 +151,8 @@ ApplicationWindow {
             ghost.sample = null
             ghost.source = ""
             win.hot = ""
+            win.footprint = ({})
+            foot = null
             if (was)
                 aborted()
         }
@@ -131,7 +162,18 @@ ApplicationWindow {
             const p = overlay.mapFromItem(null, x, y)
             ghost.x = p.x - ghost.holdX
             ghost.y = p.y - ghost.holdY
+            refresh(x, y)
+        }
+
+        // Find the target under the pointer and ask the model which cells it covers.
+        function refresh(x, y) {
             win.hot = hit(x, y)
+            if (foot)
+                win.footprint = foot
+            else if (win.hot && ghost.source)
+                win.footprint = controller.footprintFor(ghost.source, win.hot)
+            else
+                win.footprint = ({})
         }
 
         // Holding an icon against either page strip's side scrolls that strip.
@@ -173,7 +215,7 @@ ApplicationWindow {
             if (next === flick.contentX)
                 return
             flick.contentX = next
-            win.hot = hit(pointerX, pointerY)
+            refresh(pointerX, pointerY)
         }
     }
 
@@ -611,6 +653,7 @@ ApplicationWindow {
                                         wallpaper: controller.wallpaper
                                         groupMode: win.groupMode
                                         hot: win.hot
+                                        footprint: win.footprint
                                         selected: controller.selected
                                         dragApi: drag
                                         query: search.text

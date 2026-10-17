@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.1 - 2026-10-17
+
+Dragging a widget now works from anywhere on it, and you can see where it will land.
+
+- While you drag, every cell the item will cover is outlined: one cell for an app, shortcut or folder, four for a small widget, eight for a medium one, sixteen for a large one. Blue means it fits there. Red means it does not, and Hearth says why when you let go.
+- A widget is now placed by its own corner, not by the cell under the pointer. Before, the pointer decided, so a widget only landed well when you dropped it with its top left corner on the spot you wanted. Grab a widget by any part and the outline shows where it will really go.
+- A widget held past the right or bottom edge now lands against that edge. Before, it was refused.
+- You can leave a gap anywhere by dropping a widget there. Gaps still stay where you leave them, and Send to Device still closes them.
+- A new test checks that the outline and the drop agree for every kind of item on every cell, and that nothing overlaps or leaves the grid afterwards.
+
 ## 0.6.0 - 2026-10-17
 
 Hearth works over Wi-Fi, and it no longer stops when more than one device shows up.
