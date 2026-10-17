@@ -3,6 +3,22 @@ runtime: org.kde.Platform
 runtime-version: "6.10"
 sdk: org.kde.Sdk
 command: hearth
+# Qt and PySide6 come from the Flathub base app, built against this runtime, so Qt is not bundled a second time.
+# The PySide6 wheel from PyPI carries its own Qt, which needs libgssapi_krb5. The KDE runtime does not have it,
+# and Hearth would not start. Do not put PySide6 back into the pip lines below.
+base: io.qt.PySide.BaseApp
+base-version: "6.10"
+build-options:
+  env:
+    # Hearth shows no web pages and plays no media.
+    BASEAPP_REMOVE_WEBENGINE: "1"
+    BASEAPP_DISABLE_NUMPY: "1"
+cleanup-commands:
+  - /app/cleanup-BaseApp.sh
+  # The base app also carries what is needed to build PySide6 itself. A running Hearth needs none of it.
+  - rm -rf /app/lib/libLLVM* /app/lib/libclang*
+  - rm -rf /app/lib/python*/site-packages/{shiboken6_generator*,pyproject_hooks*,patchelf*,distro*,pyopengl*,OpenGL}
+  - rm -rf /app/lib/python*/site-packages/PySide6/{include,typesystems,glue}
 finish-args:
   - --share=ipc
   - --socket=wayland
@@ -20,7 +36,9 @@ modules:
       build-args:
         - --share=network
     build-commands:
-      - pip3 install --prefix=${FLATPAK_DEST} .
+      # Keep this line in step with dependencies in pyproject.toml (a test checks it). PySide6 is left out on purpose.
+      - pip3 install --prefix=${FLATPAK_DEST} "pymobiledevice3>=11.31"
+      - pip3 install --prefix=${FLATPAK_DEST} --no-deps .
       - install -Dm644 packaging/linux/io.helv.Hearth.desktop ${FLATPAK_DEST}/share/applications/io.helv.Hearth.desktop
       - install -Dm644 hearth/qml/hearth.png ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/io.helv.Hearth.png
       - install -Dm644 packaging/linux/io.helv.Hearth.metainfo.xml ${FLATPAK_DEST}/share/metainfo/io.helv.Hearth.metainfo.xml

@@ -177,3 +177,44 @@ class MacIconTests(unittest.TestCase):
 
         self.assertTrue(window_icon_path().is_file())
         self.assertTrue((ROOT / "hearth" / "qml" / "hearth-macos.png").is_file())
+
+
+class FlatpakStartsTests(unittest.TestCase):
+    """0.6.1 built a Flatpak that could not start: the PySide6 wheel from PyPI brings its own Qt, which needs a
+    library the KDE runtime does not have. Qt now comes from the base app, and the build starts the app."""
+
+    def manifest(self):
+        return read("packaging/flatpak/io.helv.Hearth.yml")
+
+    def test_qt_comes_from_the_base_app(self):
+        text = self.manifest()
+        self.assertRegex(text, r"(?m)^base: io\.qt\.PySide\.BaseApp$")
+        self.assertRegex(text, r'(?m)^base-version: "6\.10"$')
+
+    def test_no_pip_line_can_pull_pyside6_from_pypi(self):
+        text = self.manifest()
+        lines = re.findall(r"pip3 install [^\n]+", text)
+        self.assertTrue(lines)
+        for line in lines:
+            self.assertNotIn("pyside", line.lower())
+            if line.rstrip().endswith("."):
+                self.assertIn("--no-deps", line, "installing Hearth with its dependencies would fetch PySide6")
+
+    def test_the_other_dependencies_match_pyproject(self):
+        wanted = re.findall(r'"((?!PySide6)[^"]+)",?\n', read("pyproject.toml").split("dependencies = [")[1].split("]")[0])
+        self.assertTrue(wanted)
+        for spec in wanted:
+            self.assertIn(f'pip3 install --prefix=${{FLATPAK_DEST}} "{spec}"', self.manifest())
+
+    def test_the_build_installs_the_bundle_and_starts_it(self):
+        text = read(".github/workflows/flatpak.yml")
+        self.assertIn("flatpak install --user --noninteractive --assumeyes --bundle hearth.flatpak", text)
+        self.assertIn("import hearth.__main__", text)
+        self.assertIn("--selftest", text)
+        self.assertIn("grep -qx ok", text)
+
+    def test_the_release_only_attaches_a_flatpak_that_started(self):
+        text = read(".github/workflows/release.yml")
+        self.assertIn("uses: ./.github/workflows/flatpak.yml", text)
+        self.assertRegex(text, r"flatpak-publish:\n\s+needs: flatpak\n")
+        self.assertRegex(text, r"verify:\n\s+needs: \[[^\]]*flatpak-publish")

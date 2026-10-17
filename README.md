@@ -33,6 +33,8 @@ Releases: https://github.com/helv-io/hearth/releases/latest
 | macOS, Intel | `Hearth-macos-intel.dmg` | The same, for Macs with an Intel processor. |
 | Linux | `hearth.flatpak` | `flatpak install --user hearth.flatpak` |
 
+The Linux file from 0.6.1 does not open. Use 0.6.2 or newer. Every release now starts the Linux file once before it is published.
+
 Not sure which Mac you have? Click the Apple menu in the top left corner and choose About This Mac. If the window says Chip, followed by a name like Apple M1, M2, M3 or M4, download `Hearth-macos.dmg`. If it says Processor, followed by a name like Intel Core i5, download `Hearth-macos-intel.dmg`. Both need macOS 14.4 or newer.
 
 The first time you open Hearth on a Mac, macOS warns that it cannot check the app, because Hearth is not signed with a paid Apple developer account. Hearth is open source, and you can read what it does. To open it anyway:
