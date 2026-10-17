@@ -664,6 +664,84 @@ def _page_spot(page: list[Item], src: Item, index_text: str) -> tuple[int, int] 
     return positions[id(anchor)]
 
 
+def snap_origin(width: int, height: int, left: float, top: float, columns: int, rows: int) -> tuple[int, int]:
+    """The cell for an item's top-left corner, from where that corner is held in cell units.
+
+    The nearest cell wins, then the whole footprint is pulled back inside the page,
+    so an item held past the right or bottom edge lands against the edge instead of
+    being refused. Every drop of a tall or wide item goes through here.
+    """
+    col = min(max(int(round(left)), 0), max(0, columns - width))
+    row = min(max(int(round(top)), 0), max(0, rows - height))
+    return row, col
+
+
+def _page_rows(page: list[Item]) -> int:
+    """Rows on screen: the phone's rows, or more when something already sits past them."""
+    columns = active_screen().columns
+    rows = active_screen().rows
+    return _grid_from(page, _positions_of(page), columns, rows)[0]
+
+
+def footprint_cells(row: int, col: int, width: int, height: int) -> list[list[int]]:
+    return [[r, c] for r in range(row, row + height) for c in range(col, col + width)]
+
+
+def placement(state: State, source: str, target: str) -> dict:
+    """What a drop on `target` would do to the moved item, without doing it.
+
+    `move` and the highlight both read this, so the picture and the drop cannot disagree.
+    Returns the page, the cell the item's top-left lands on, every cell it covers,
+    whether the drop works, and why not. A drop that is not on a page cell (dock,
+    folder, grouping) has no footprint.
+    """
+    none = {"page": -1, "row": 0, "col": 0, "w": 1, "h": 1, "cells": [], "valid": False, "reason": ""}
+    try:
+        src = _object_at(state, source)
+    except (KeyError, IndexError, ValueError):
+        return none
+    head, _, rest = target.partition(":")
+    kind, _, tail = rest.partition(":")
+    if head != "at" or kind != "page":
+        return none
+    try:
+        page_text, _, index_text = tail.partition(":")
+        page = state[int(page_text) + 1]
+        spot = _page_spot(page, src, index_text)
+    except (KeyError, IndexError, ValueError):
+        return none
+    width, height = span(src)
+    out = dict(none, page=int(page_text), w=width, h=height)
+    if spot is None:
+        found = find(state, src)
+        spot = _positions_of(page)[id(src)] if found and found[0] == "page" else None
+        if spot is None:
+            return out
+    if spot == "full":
+        return dict(out, reason="That page is full.")
+    row, col = spot
+    error, _updates = _plan(page, src, row, col)
+    return dict(out, row=row, col=col, cells=footprint_cells(row, col, width, height), valid=error is None, reason=error or "")
+
+
+def drop_for(state: State, source: str, page_index: int, left: float, top: float) -> dict:
+    """The drop for an item held so that its top-left corner is at (left, top) cells on a page.
+
+    This is how a widget, or any item bigger than one cell, finds its place from where
+    the pointer is. It answers with the target to move to and the same footprint as `placement`.
+    """
+    try:
+        src = _object_at(state, source)
+        page = state[page_index + 1]
+    except (KeyError, IndexError, ValueError):
+        return {"target": "", "page": -1, "cells": [], "valid": False, "reason": "", "row": 0, "col": 0, "w": 1, "h": 1}
+    width, height = span(src)
+    rows = max(_page_rows([item for item in page if item is not src]), active_screen().rows)
+    row, col = snap_origin(width, height, left, top, active_screen().columns, rows)
+    target = f"at:page:{page_index}:cell:{row}:{col}"
+    return dict(placement(state, source, target), target=target)
+
+
 def strip_positions(state: State) -> None:
     """Drop editor coordinates so a push sends the icon list the phone already speaks."""
     for page in state[1:]:

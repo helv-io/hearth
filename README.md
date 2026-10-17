@@ -106,7 +106,7 @@ The sidebar then shows **Show manual steps**. It opens the exact step for your s
 
 Model list and file locations: [docs/devices.md](docs/devices.md).
 
-Pages keep empty cells. Drop an icon on an empty cell and the gap stays. Drop it on the side of another icon and only the icons up to the next gap shift. Send to Device closes gaps, because the device's icon list has no empty cells. The confirm step says so when the canvas has gaps.
+While you drag, Hearth outlines every cell the item will cover. Blue means it fits there. Red means it does not. A widget is placed by its own corner, wherever you grab it, and one held past the edge lands against the edge. Pages keep empty cells. Drop an icon on an empty cell and the gap stays. Drop it on the side of another icon and only the icons up to the next gap shift. Send to Device closes gaps, because the device's icon list has no empty cells. The confirm step says so when the canvas has gaps.
 
 Folders stay packed, nine apps to a page. Two or more pages show that count in a red badge on the folder. One page does not.
 
