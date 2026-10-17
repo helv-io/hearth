@@ -88,7 +88,7 @@ macOS already has the USB service, the program that lets a computer talk to an i
 
 | System | What Hearth does |
 | --- | --- |
-| Linux | Installs the USB service if it is missing, and starts it. You may be asked for your password. |
+| Linux | Installs the USB service if it is missing, and starts it. You may be asked for your password. This also works from the Flatpak, which asks your computer itself. On a desktop with no password window, Hearth says so and shows the steps instead of waiting. |
 | Windows | Installs Apple's USB driver if it is missing, and starts it. You may be asked to approve it. If it cannot, the sidebar opens the [Apple Devices](https://apps.microsoft.com/detail/9np83lwlpz9k) page in the Store. |
 | macOS | Nothing. |
 

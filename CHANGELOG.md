@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.4 - 2026-10-17
+
+On Linux, the Flatpak now sets up the USB service with one button. Before, it told you to install it yourself.
+
+- The cause: Hearth asks your computer, from inside the Flatpak, which installer it has and whether the USB service is there. It got a good answer, but squashed it onto one line and then read none of it. So it believed your computer had no installer and no USB service, and showed "Hearth cannot set it up on this Linux by itself", with only the manual steps. The same mistake could show the setup card when the service was already running.
+- Now the answer is read properly. On Arch, Debian, Fedora and the others Hearth knows, the sidebar shows the button, and the manual steps stay folded below it for when the button fails.
+- Hearth also checks that the desktop has a window that can ask for your password. Some setups, such as a bare Arch desktop with a tiling window manager, have none, and the setup would sit waiting with nothing on screen. There Hearth now says it cannot ask for your password and shows the steps to run once, instead of waiting.
+- New tests read a made-up Arch, Debian and Fedora computer through the same script the Flatpak uses, and fail on 0.6.3.
+
 ## 0.6.3 - 2026-10-17
 
 The Linux app starts again after the USB service is installed. With the service running, the 0.6.2 Flatpak stopped at launch with: bwrap: Can't make symlink at /var/run: existing destination is ../run.

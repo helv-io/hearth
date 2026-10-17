@@ -9,6 +9,7 @@ in a Report is for people: no command names, no paths.
 from __future__ import annotations
 
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -35,6 +36,8 @@ class Probe:
     have_usbmuxd: bool = False
     have_systemctl: bool = False
     package_manager: str = ""
+    # Whether something on this desktop can ask for a password. Without it the setup would wait forever.
+    have_agent: bool = True
     windows_installed: bool = False
     windows_running: bool = False
     have_winget: bool = False
@@ -118,6 +121,7 @@ def live_probe() -> Probe:
             have_usbmuxd=found["usbmuxd"],
             have_systemctl=found["systemctl"],
             package_manager=found["manager"],
+            have_agent=found["agent"],
             stored_pairing=_has_stored_pairing(),
         )
     if system == "Windows":
@@ -153,6 +157,8 @@ def _linux(probe: Probe) -> Report:
         return Report(False, True, "ready")
     if probe.have_usbmuxd:
         body = "systemctl enable --now usbmuxd" if probe.have_systemctl else "usbmuxd"
+        if not probe.have_agent:
+            return _no_password_prompt(body)
         return Report(
             True,
             False,
@@ -173,6 +179,8 @@ def _linux(probe: Probe) -> Report:
             detail="Hearth cannot set it up on this Linux by itself. Look for a package named usbmuxd in your software center, install it, then start Hearth again.",
             manual=_manual_choices(),
         )
+    if not probe.have_agent:
+        return _no_password_prompt(body)
     return Report(
         True,
         False,
@@ -182,6 +190,18 @@ def _linux(probe: Probe) -> Report:
         action="Install USB service",
         manual=_manual(body),
         command=_host(probe.flatpak, "pkexec", "sh", "-c", body),
+    )
+
+
+def _no_password_prompt(body: str) -> Report:
+    """No password window is available, so the button would wait with nothing on screen. Say so, and give the steps."""
+    return Report(
+        True,
+        False,
+        "manual",
+        headline="Linux needs the USB service",
+        detail="Hearth cannot ask for your password on this desktop. Run the steps below once, then start Hearth again.",
+        manual=f"sudo sh -c {shlex.quote(body)}",
     )
 
 
@@ -276,6 +296,7 @@ def _linux_inventory(flatpak: bool) -> dict[str, object]:
             "usbmuxd": usbmuxd,
             "systemctl": shutil.which("systemctl") is not None,
             "manager": manager,
+            "agent": _agent_running(),
         }
     script = """
 socket=0
@@ -290,21 +311,58 @@ if command -v systemctl >/dev/null; then echo SYSTEMCTL=1; else echo SYSTEMCTL=0
 for c in pacman apt-get dnf zypper apk xbps-install; do
   if command -v "$c" >/dev/null; then echo "MANAGER=$c"; break; fi
 done
+agent=0
+for f in /proc/[0-9]*/cmdline; do
+  if [ -O "${f%/cmdline}" ]; then
+    name=$(tr '\\0' '\\n' < "$f" 2>/dev/null | head -n 1)
+    name=${name##*/}
+    case "$name" in
+      *polkit*agent*|*polkit*auth*|*agent*polkit*|*policykit*|*-polkit|lxpolkit|soteria|gnome-shell|cinnamon|plasmashell) agent=1; break ;;
+    esac
+  fi
+done
+echo "AGENT=$agent"
 """
-    code, text = _run(("flatpak-spawn", "--host", "sh", "-c", script), timeout=8)
-    found: dict[str, object] = {"socket": False, "usbmuxd": False, "systemctl": False, "manager": ""}
+    # The answer is one word per line, so it needs the lines kept. _run folds a reply into a single line.
+    code, text = _run(("flatpak-spawn", "--host", "sh", "-c", script), timeout=8, keep_lines=True)
+    found: dict[str, object] = {"socket": False, "usbmuxd": False, "systemctl": False, "manager": "", "agent": True}
     if code != 0:
         return found
-    for line in text.splitlines():
+    for line in text.split():
         if line == "SOCKET=1":
             found["socket"] = True
         elif line == "USBMUXD=1":
             found["usbmuxd"] = True
         elif line == "SYSTEMCTL=1":
             found["systemctl"] = True
+        elif line == "AGENT=0":
+            found["agent"] = False
         elif line.startswith("MANAGER="):
             found["manager"] = line.split("=", 1)[1].strip()
     return found
+
+
+def _agent_running() -> bool:
+    """Is a password window available to this user? Looks for the usual desktop helpers by name."""
+    proc = Path("/proc")
+    try:
+        mine = os.getuid()
+        entries = [entry for entry in proc.iterdir() if entry.name.isdigit()]
+    except (AttributeError, OSError):
+        return True
+    for entry in entries:
+        try:
+            if entry.stat().st_uid != mine:
+                continue
+            first = (entry / "cmdline").read_bytes().split(b"\0", 1)[0].decode("utf-8", "replace")
+        except OSError:
+            continue
+        if _AGENT_NAME.search(Path(first).name):
+            return True
+    return False
+
+
+_AGENT_NAME = re.compile(r"polkit.*(agent|auth)|(agent).*polkit|policykit|-polkit$|^lxpolkit$|^soteria$|^gnome-shell$|^cinnamon$|^plasmashell$")
 
 
 def _windows_service() -> tuple[bool, bool]:
@@ -360,7 +418,7 @@ def _quiet() -> dict[str, object]:
     return kwargs
 
 
-def _run(argv: tuple[str, ...] | list[str], timeout: int) -> tuple[int, str]:
+def _run(argv: tuple[str, ...] | list[str], timeout: int, keep_lines: bool = False) -> tuple[int, str]:
     try:
         completed = subprocess.run(
             list(argv),
@@ -374,6 +432,8 @@ def _run(argv: tuple[str, ...] | list[str], timeout: int) -> tuple[int, str]:
         return 124, "Timed out."
     except OSError as exc:
         return 127, str(exc)
+    if keep_lines:
+        return completed.returncode, completed.stdout or ""
     text = (completed.stderr or completed.stdout or "").strip()
     if len(text) > 280:
         text = text[-280:]
