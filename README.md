@@ -2,7 +2,7 @@
 
 Desktop editor for an iPhone or iPad home screen. Linux, Windows, and macOS.
 
-Plug in one unlocked device. Hearth notices it and reads the layout. Rearrange it, then send it back. Every read and every send saves a version you can open with nothing plugged in.
+Plug in an unlocked device, or let Hearth find one you have paired on your home network. Hearth notices it and reads the layout. Rearrange it, then send it back. Every read and every send saves a version you can open with nothing plugged in.
 
 ## Screenshots
 
@@ -70,9 +70,17 @@ To turn the startup check off, open Settings and clear Check for updates on star
 
 ## Connect
 
-Unlock the device and tap Trust. Hearth checks every two seconds. The first time it sees one device, and the canvas has no unsaved edits, it reads the layout. Refresh looks again and does not replace the canvas. Read from Device and Send to Device are the manual steps.
+Unlock the device and tap Trust. Hearth checks every two seconds. The first time it sees a device, and the canvas has no unsaved edits, it reads the layout. Refresh looks again and does not replace the canvas. Read from Device and Send to Device are the manual steps.
 
-One device at a time. If two are plugged in, Hearth does not guess which one you mean. It tells you to unplug one. Two devices talking at once could send a layout to the wrong phone.
+One device is used at a time. With one device there is nothing to choose. With more than one, the name at the top of the sidebar becomes a list. Pick one and Hearth reads it, and next time it starts with the one you picked last. If the device you are using goes away, Hearth moves to the one that is left.
+
+### Wi-Fi
+
+Plug in a device once and Hearth lets it be found on your home network. After that you can leave the cable out. A device on Wi-Fi shows as its name with (Wi-Fi) after it. If the same device is also plugged in, it shows once and Hearth uses the cable. Hearth only connects to a device you have already paired by cable, so pairing always needs the cable.
+
+The device has to be awake and on the same network. If Hearth cannot reach it, it says so, and waking the device or plugging it in fixes that. A phone that is asleep stops answering.
+
+Settings has one switch for this, Connect over Wi-Fi. It is on by default. Turn it off and Hearth stops looking on the network, stops setting devices up for Wi-Fi, and ignores any device that is only on Wi-Fi. On a Mac, the first time Hearth looks, macOS asks whether Hearth may find devices on your network. Say yes. Hearth keeps a private copy of each pairing in its own folder, readable only by you, so a Wi-Fi connection works on a Linux computer without the USB service.
 
 macOS already has the USB service, the program that lets a computer talk to an iPhone or iPad over a cable. Windows and Linux may not. Hearth checks at startup. When the service is missing or stopped, the sidebar says so and one button sets it up.
 

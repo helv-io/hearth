@@ -64,7 +64,7 @@ jobs:
       # and says which one.
       - name: Install
         run: |
-          pip install --only-binary=:all: "PySide6>=6.6" "pymobiledevice3>=4.0" pyinstaller
+          pip install --only-binary=:all: "PySide6>=6.6" "pymobiledevice3>=11.31" pyinstaller
           pip install --no-deps -e .
           pip list 2>/dev/null | grep -i -E "^(pyside6|pymobiledevice3|cryptography|pyinstaller) "
       # The app icon. Without an .icns in the bundle, Finder and the Dock show the

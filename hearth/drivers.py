@@ -38,6 +38,7 @@ class Probe:
     windows_installed: bool = False
     windows_running: bool = False
     have_winget: bool = False
+    stored_pairing: bool = False
 
 
 @dataclass(frozen=True)
@@ -117,6 +118,7 @@ def live_probe() -> Probe:
             have_usbmuxd=found["usbmuxd"],
             have_systemctl=found["systemctl"],
             package_manager=found["manager"],
+            stored_pairing=_has_stored_pairing(),
         )
     if system == "Windows":
         installed, running = _windows_service()
@@ -127,6 +129,12 @@ def live_probe() -> Probe:
             have_winget=shutil.which("winget") is not None,
         )
     return Probe(system=system, flatpak=flatpak)
+
+
+def _has_stored_pairing() -> bool:
+    from hearth import wireless
+
+    return wireless.wifi_enabled() and bool(wireless.stored_records())
 
 
 def in_flatpak() -> bool:
@@ -140,6 +148,9 @@ def _ready_mac() -> Report:
 def _linux(probe: Probe) -> Report:
     if probe.socket_open:
         return Report(True, True, "ready")
+    if probe.stored_pairing and not probe.have_usbmuxd:
+        # A phone paired before can still be found on Wi-Fi, so there is nothing to block on.
+        return Report(False, True, "ready")
     if probe.have_usbmuxd:
         body = "systemctl enable --now usbmuxd" if probe.have_systemctl else "usbmuxd"
         return Report(
