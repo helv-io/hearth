@@ -45,8 +45,8 @@ jobs:
       ARCH: ${{ matrix.arch }}
       DMG: ${{ matrix.dmg }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Check that this runner is the kind of Mac we are building for
@@ -107,7 +107,7 @@ jobs:
           cp "$RUNNER_TEMP/check.iconset/icon_256x256@2x.png" "icon-check/Hearth-icon-$ARCH-512.png"
           ls -l icon-check
           echo "- app icon: $icon_name, all sizes present" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: icon-check-${{ matrix.arch }}
           path: icon-check
@@ -199,7 +199,7 @@ jobs:
           test "$status" -eq 0
           grep -qx "machine $ARCH" "$RUNNER_TEMP/selftest-dmg.txt"
           grep -qx ok "$RUNNER_TEMP/selftest-dmg.txt"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.dmg }}
           path: ${{ matrix.dmg }}
