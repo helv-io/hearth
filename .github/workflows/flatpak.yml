@@ -28,7 +28,7 @@ jobs:
       image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
       options: --privileged
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: hearth.flatpak
@@ -57,7 +57,7 @@ jobs:
           grep -qx ok selftest.txt
           size="$(du -h hearth.flatpak | cut -f1)"
           echo "- hearth.flatpak is $size, and it started with no screen" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: hearth.flatpak
           path: hearth.flatpak
