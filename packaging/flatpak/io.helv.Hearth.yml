@@ -41,7 +41,8 @@ modules:
       - pip3 install --prefix=${FLATPAK_DEST} "pymobiledevice3>=11.31"
       - pip3 install --prefix=${FLATPAK_DEST} --no-deps .
       - install -Dm644 packaging/linux/io.helv.Hearth.desktop ${FLATPAK_DEST}/share/applications/io.helv.Hearth.desktop
-      - install -Dm644 hearth/qml/hearth.png ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/io.helv.Hearth.png
+      - install -Dm644 packaging/linux/icons/256.png ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/io.helv.Hearth.png
+      - install -Dm644 packaging/linux/icons/512.png ${FLATPAK_DEST}/share/icons/hicolor/512x512/apps/io.helv.Hearth.png
       - install -Dm644 packaging/linux/io.helv.Hearth.metainfo.xml ${FLATPAK_DEST}/share/metainfo/io.helv.Hearth.metainfo.xml
     sources:
       - type: dir
