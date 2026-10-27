@@ -1,7 +1,7 @@
 #!/bin/sh
 # Builds packaging/macos/Hearth.icns from packaging/macos/icon-1024.png.
 # Needs sips and iconutil, which every Mac has, so it runs on the CI runner.
-# The master comes from scripts/make-mac-icon.py.
+# The master comes from scripts/make-mac-icon.py, drawn from packaging/hearth.svg.
 set -eu
 
 here="$(cd "$(dirname "$0")" && pwd)"

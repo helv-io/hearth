@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+Hearth has a new icon.
+
+- The window, the sidebar, Windows, Linux and macOS all use one picture: a home screen with a flame, on black.
+- On a Mac the picture is still rounded, with the same clear space around it, so it sits with other app icons.
+
 ## 0.6.6 - 2026-10-17
 
 The organizer now knows where each app sits, and a little more about it, so it can tell which apps you use most.

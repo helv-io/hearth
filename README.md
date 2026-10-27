@@ -4,6 +4,8 @@ Desktop editor for an iPhone or iPad home screen. Linux, Windows, and macOS.
 
 Plug in an unlocked device, or let Hearth find one you have paired on your home network. Hearth notices it and reads the layout. Rearrange it, then send it back. Every read and every send saves a version you can open with nothing plugged in.
 
+The icon is a home screen with a flame. The window and the sidebar show it.
+
 ## Screenshots
 
 Sample home screen. The app icons belong to their owners and are shown only as a demonstration.

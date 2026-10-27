@@ -159,18 +159,64 @@ class MacIconTests(unittest.TestCase):
         self.assertIn("iconutil -c icns", script)
 
     def test_the_master_is_a_transparent_1024_square_with_clear_space(self):
-        from PySide6.QtGui import QImage, qAlpha
+        from PySide6.QtGui import QImage, qAlpha, qBlue, qGreen, qRed
 
         image = QImage(str(ROOT / "packaging" / "macos" / "icon-1024.png"))
         self.assertEqual((image.width(), image.height()), (1024, 1024))
         self.assertTrue(image.hasAlphaChannel())
         self.assertEqual(qAlpha(image.pixel(0, 0)), 0, "transparent corner")
         self.assertEqual(qAlpha(image.pixel(512, 512)), 255)
+        # The picture's own background is black, so the middle of the tile is black.
+        center = image.pixel(512, 512)
+        self.assertEqual((qRed(center), qGreen(center), qBlue(center)), (0, 0, 0))
         # Apple's grid: an 824 px tile, so 100 px of clear space on each side.
         row = [x for x in range(1024) if qAlpha(image.pixel(x, 512)) > 200]
         column = [y for y in range(1024) if qAlpha(image.pixel(512, y)) > 200]
         self.assertTrue(95 <= row[0] <= 105 and 918 <= row[-1] <= 930, (row[0], row[-1]))
         self.assertTrue(95 <= column[0] <= 105 and 918 <= column[-1] <= 930, (column[0], column[-1]))
+
+    def test_the_square_picture_is_the_svg_drawn_at_1024(self):
+        from PySide6.QtGui import QImage
+
+        self.assertIn('SVG = ROOT / "packaging" / "hearth.svg"', read("scripts/make-mac-icon.py"))
+        svg = (ROOT / "packaging" / "hearth.svg").read_text(encoding="utf-8")
+        self.assertIn('viewBox="0 0 1024 1024"', svg)
+        image = QImage(str(ROOT / "hearth" / "qml" / "hearth.png"))
+        self.assertEqual((image.width(), image.height()), (1024, 1024))
+        self.assertFalse(image.hasAlphaChannel())
+        # Interior of the black ground, a blue tile, a white tile, and the flame.
+        self.assertEqual(self.rgb(image, 0, 0), (0, 0, 0))
+        self.assertEqual(self.rgb(image, 200, 120), (91, 152, 179))
+        self.assertEqual(self.rgb(image, 400, 120), (235, 235, 235))
+        self.assertEqual(self.rgb(image, 512, 700), (231, 71, 35))
+
+    def rgb(self, image, x, y):
+        from PySide6.QtGui import qBlue, qGreen, qRed
+
+        pixel = image.pixel(x, y)
+        return (qRed(pixel), qGreen(pixel), qBlue(pixel))
+
+    def test_the_windows_icon_holds_every_size(self):
+        import struct
+
+        data = (ROOT / "hearth" / "qml" / "hearth.ico").read_bytes()
+        count = struct.unpack_from("<H", data, 4)[0]
+        sizes = []
+        for index in range(count):
+            width = data[6 + index * 16]
+            sizes.append(256 if width == 0 else width)
+        self.assertEqual(sizes, [16, 32, 48, 64, 128, 256])
+
+    def test_the_linux_icons_match_the_theme_directories(self):
+        from PySide6.QtGui import QImage
+
+        text = read("packaging/flatpak/io.helv.Hearth.yml")
+        for size in (256, 512):
+            self.assertIn(f"packaging/linux/icons/{size}.png", text)
+            self.assertIn(f"hicolor/{size}x{size}/apps/io.helv.Hearth.png", text)
+            image = QImage(str(ROOT / "packaging" / "linux" / "icons" / f"{size}.png"))
+            self.assertEqual((image.width(), image.height()), (size, size))
+            self.assertEqual(self.rgb(image, 0, 0), (0, 0, 0))
 
     def test_the_window_icon_is_a_picture_that_ships(self):
         from hearth.paths import window_icon_path
