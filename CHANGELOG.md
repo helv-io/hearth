@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.7 - 2026-10-27
 
 Hearth has a new icon.
 
